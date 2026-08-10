@@ -11,6 +11,7 @@
 //    nothing. An ingest endpoint that silently accepts unauthenticated data is
 //    worse than one that is off.
 
+import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import {
@@ -43,7 +44,23 @@ type FailureRow = {
 
 const isIso = (v: unknown) => typeof v === 'string' && !Number.isNaN(new Date(v).getTime());
 const isDay = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Counts are non-negative integers. Anything else corrupts the funnel silently. */
+const isCount = (v: unknown) => v === undefined || v === null || (Number.isInteger(v) && (v as number) >= 0);
 const bad = (message: string, status = 400) => NextResponse.json({ ok: false, message }, { status });
+
+/** Constant-time over the full string, and length-safe because it hashes first. */
+function tokenMatches(given: string, expected: string) {
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) {
+    // timingSafeEqual throws on length mismatch, so compare against self to
+    // keep the work done roughly constant before returning.
+    timingSafeEqual(a, a);
+    return false;
+  }
+  return timingSafeEqual(a, b);
+}
 
 /** GET is a health probe, so the bridge can tell "not deployed" from "not configured". */
 export async function GET() {
@@ -64,10 +81,10 @@ export async function POST(request: Request) {
 
   const auth = request.headers.get('authorization') || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  // Length check first so the comparison below cannot leak length via timing.
-  if (token.length !== CHECKIN_INGEST_TOKEN.length || token !== CHECKIN_INGEST_TOKEN) {
-    return bad('Unauthorised', 401);
-  }
+  // The CHECKIN_INGEST_READY guard above is load-bearing: were it not first, an
+  // empty configured token plus a bare "Bearer " header would compare equal and
+  // authorise.
+  if (!tokenMatches(token, CHECKIN_INGEST_TOKEN)) return bad('Unauthorised', 401);
 
   let body: { steps?: StepRow[]; failures?: FailureRow[] };
   try {
@@ -82,11 +99,19 @@ export async function POST(request: Request) {
   if (steps.length > 1000 || failures.length > 1000) return bad('Send at most 1000 rows per call');
 
   for (const s of steps) {
-    if (!s?.property_id || !s?.step_key) return bad('Each step needs property_id and step_key');
-    if (!isDay(s.day)) return bad(`Step day must be YYYY-MM-DD, got ${String(s.day)}`);
+    if (!UUID.test(String(s?.property_id))) return bad('Each step needs a UUID property_id');
+    if (!s?.step_key) return bad('Each step needs a step_key');
+    if (!isDay(s.day)) return bad('Step day must be YYYY-MM-DD');
+    if (
+      ![s.entered_count, s.completed_count, s.failed_count, s.abandoned_count,
+        s.p50_duration_ms, s.p95_duration_ms].every(isCount)
+    ) {
+      return bad('Step counts and durations must be non-negative integers');
+    }
   }
   for (const f of failures) {
-    if (!f?.property_id || !f?.step_key) return bad('Each failure needs property_id and step_key');
+    if (!UUID.test(String(f?.property_id))) return bad('Each failure needs a UUID property_id');
+    if (!f?.step_key) return bad('Each failure needs a step_key');
     if (!isIso(f.occurred_at)) return bad('Failure occurred_at must be an ISO timestamp');
   }
 
@@ -96,9 +121,17 @@ export async function POST(request: Request) {
 
   // Steps are a daily rollup keyed by (property, step, day), so re-sending a
   // day is an update rather than a duplicate — the bridge can safely retry.
-  if (steps.length) {
+  //
+  // That holds ACROSS calls. Within one call it does not: two rows sharing the
+  // conflict key make Postgres raise "ON CONFLICT DO UPDATE command cannot
+  // affect row a second time". Collapse duplicates last-write-wins first.
+  const dedupedSteps = Array.from(
+    steps.reduce((m, s) => m.set(`${s.property_id}|${s.step_key}|${s.day}`, s), new Map<string, StepRow>()).values()
+  );
+
+  if (dedupedSteps.length) {
     const { error } = await db.from('checkin_step_daily').upsert(
-      steps.map((s) => ({
+      dedupedSteps.map((s) => ({
         property_id: s.property_id,
         step_key: s.step_key,
         day: s.day,
@@ -112,7 +145,11 @@ export async function POST(request: Request) {
       })),
       { onConflict: 'property_id,step_key,day' }
     );
-    if (error) return bad(`Could not write steps: ${error.message}`, 502);
+    // Log the driver detail server-side; do not put schema internals on the wire.
+    if (error) {
+      console.error('checkin ingest: steps write failed', error);
+      return bad('Could not write steps', 502);
+    }
   }
 
   if (failures.length) {
@@ -127,8 +164,11 @@ export async function POST(request: Request) {
         raw: f.raw ?? null
       }))
     );
-    if (error) return bad(`Could not write failures: ${error.message}`, 502);
+    if (error) {
+      console.error('checkin ingest: failures write failed', error);
+      return bad('Could not write failures', 502);
+    }
   }
 
-  return NextResponse.json({ ok: true, steps: steps.length, failures: failures.length });
+  return NextResponse.json({ ok: true, steps: dedupedSteps.length, failures: failures.length });
 }

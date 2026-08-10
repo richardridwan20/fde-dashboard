@@ -32,6 +32,10 @@ export default async function Checkin({ searchParams }: { searchParams: Promise<
   const slug = sp?.property || null;
   const rows = slug ? funnel.filter((f: any) => f.property_slug === slug) : funnel;
   const fails = slug ? failures.filter((f: any) => f.property_slug === slug) : failures;
+  // "No events anywhere" and "no events for this filter" are different claims.
+  // Branching the headline card on the filtered set made a typo'd ?property=
+  // assert the tables were empty.
+  const noEventsAnywhere = funnel.length === 0;
 
   // Roll the daily rows up per step across the window.
   const byStep = steps.map((s: any) => {
@@ -71,7 +75,7 @@ export default async function Checkin({ searchParams }: { searchParams: Promise<
         </p>
       </div>
 
-      {totalEntered === 0 ? (
+      {noEventsAnywhere ? (
         <Card>
           <CardHeader
             title="No check-in events yet"
@@ -148,6 +152,12 @@ export default async function Checkin({ searchParams }: { searchParams: Promise<
 
           <Card>
             <CardHeader title="Funnel" sub="Share of everyone who entered each step and finished it" />
+            {totalEntered === 0 && (
+              <Empty>
+                No check-in events for this property in the last {WINDOW_DAYS} days. Other
+                properties have data — clear the filter to see them.
+              </Empty>
+            )}
             <div className="divide-y divide-line">
               {byStep.map((s: any) => (
                 <div key={s.key} className="px-4 py-2.5">
@@ -176,7 +186,7 @@ export default async function Checkin({ searchParams }: { searchParams: Promise<
           </Card>
 
           <Card>
-            <CardHeader title="Recent failures" sub={`${fails.length} recorded`} />
+            <CardHeader title="Recent failures" sub={plural(fails.length, 'failure')} />
             <div className="divide-y divide-line">
               {fails.slice(0, 25).map((f: any) => (
                 <div key={f.id} className="px-4 py-2.5">

@@ -103,12 +103,15 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
         />
         <Metric label="Devices" value={property.integration_count || 0} sub={`${property.integration_blocked || 0} blocked`} />
         <Metric label="Checklist" value={`${property.checklist_done || 0}/${property.checklist_total || 0}`} />
+        {/* "9d over" on a finished property reads as a miss it is not. */}
         <Metric label="Onboarding" value={fmtDate(property.onboarding_date)} sub={
           property.days_to_onboarding === null
             ? 'no date set'
-            : property.days_to_onboarding < 0
-              ? `${Math.abs(property.days_to_onboarding)}d over`
-              : `in ${property.days_to_onboarding}d`
+            : property.stage === 'done' || property.stage === 'onboarded'
+              ? String(property.stage).replace(/_/g, ' ')
+              : property.days_to_onboarding < 0
+                ? `${Math.abs(property.days_to_onboarding)}d over`
+                : `in ${property.days_to_onboarding}d`
         } />
       </div>
 

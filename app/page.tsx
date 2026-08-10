@@ -5,9 +5,10 @@ import {
   getGoLiveGate, getStaleStages, isActive, isPastDue
 } from '@/lib/data';
 import { Button, Card, CardHeader, Empty, Pill, TableWrap } from '@/components/ui';
+import { plural } from '@/lib/ui-helpers';
 import { DriftBanner } from '@/components/clickup';
 import { LeadFold } from '@/components/lead-fold';
-import { GateTone, GoLiveWatch, StageDriftBanner, isWatched } from '@/components/go-live';
+import { GoLiveWatch, StageDriftBanner, atRiskGates } from '@/components/go-live';
 import { Metric, Progress, StagePill, StatePill, ago, fmtDate } from '@/components/shared';
 
 export const dynamic = 'force-dynamic';
@@ -19,8 +20,8 @@ export default async function Overview() {
   ]);
 
   const ready = new Map(readiness.map((r: any) => [r.property_id, r]));
-  const gateBy = new Map(gates.map((g: any) => [g.property_id, g]));
-  const atRisk = gates.filter((g: any) => isWatched(g) && !g.is_ready);
+  // Same predicate the watch card uses, so the count and the list cannot drift.
+  const atRisk = atRiskGates(gates);
   const inFlight = rows.filter(isActive);
   const overdue = rows.filter(isPastDue);
   const live = rows.filter((r: any) => r.stage === 'done' || r.stage === 'onboarded');
@@ -65,9 +66,9 @@ export default async function Overview() {
           sub="still in flight"
         />
         <Metric
-          label="Go-live at risk"
+          label="Properties at risk"
           value={atRisk.length}
-          sub="dated within 30d"
+          sub="go-live within 30d"
           tone={atRisk.length ? 'bad' : undefined}
         />
         <Metric label="Devices blocked" value={blockedDevices} href="/devices" />
@@ -99,7 +100,7 @@ export default async function Overview() {
               </td>
               <td className="px-4 py-2.5">
                 <div>{fmtDate(r.onboarding_date)}</div>
-                {r.days_to_onboarding !== null && r.stage !== 'done' && (
+                {r.days_to_onboarding !== null && r.stage !== 'done' && r.stage !== 'onboarded' && (
                   <div
                     className={
                       isPastDue(r) ? 'text-[11px] text-destructive' : 'text-[11px] text-faint'
@@ -108,13 +109,6 @@ export default async function Overview() {
                     {r.days_to_onboarding < 0
                       ? `${Math.abs(r.days_to_onboarding)}d over`
                       : `in ${r.days_to_onboarding}d`}
-                  </div>
-                )}
-                {/* Gate sits under the date rather than in its own column —
-                    the table is already seven wide and scrolls on a phone. */}
-                {isWatched(gateBy.get(r.id)) && (
-                  <div className="mt-1">
-                    <GateTone gate={gateBy.get(r.id)} />
                   </div>
                 )}
               </td>
@@ -150,8 +144,8 @@ export default async function Overview() {
             <CardHeader
               title={group.name}
               sub={
-                `${items.length} propert${items.length === 1 ? 'y' : 'ies'}` +
-                (leads.length ? ` · ${leads.length} lead${leads.length === 1 ? '' : 's'}` : '')
+                plural(items.length, 'property', 'properties') +
+                (leads.length ? ` · ${plural(leads.length, 'lead')}` : '')
               }
               right={
                 <span className="text-[11px] text-faint">

@@ -10,9 +10,27 @@ import { Card, CardHeader, Empty, Pill } from '@/components/ui';
 import { plural } from '@/lib/ui-helpers';
 import { cn } from '@/lib/utils';
 
-/** A property is "watched" once it has a date near enough to act on. */
+/**
+ * A property is "watched" once it has a date near enough to act on and has not
+ * finished.
+ *
+ * went_live_at alone is not enough: it is NULL for all 33 properties, so it
+ * carries no signal and every finished property stayed "watched". Stage is the
+ * field people actually maintain, so finished stages exclude too — otherwise
+ * the portfolio flags a done property as at risk on the same row where it
+ * reports it live and not past due.
+ */
+const FINISHED = new Set(['done', 'onboarded']);
+
 export const isWatched = (g: any) =>
-  g.days_to_go_live !== null && g.days_to_go_live <= 30 && !g.went_live_at;
+  !!g &&
+  g.days_to_go_live !== null &&
+  g.days_to_go_live <= 30 &&
+  !g.went_live_at &&
+  !FINISHED.has(g.stage);
+
+/** The properties the watch card and the "at risk" count both mean. */
+export const atRiskGates = (gates: any[]) => gates.filter((g) => isWatched(g) && !g.is_ready);
 
 export function GateTone({ gate }: { gate: any }) {
   if (!gate || gate.days_to_go_live === null) return <span className="text-faint">—</span>;
@@ -20,7 +38,9 @@ export function GateTone({ gate }: { gate: any }) {
   const late = d < 0;
   return (
     <Pill tone={gate.is_ready ? 'good' : late ? 'bad' : d <= 14 ? 'warn' : 'info'}>
-      {gate.is_ready ? 'ready' : late ? `${Math.abs(d)}d over, not ready` : `not ready · ${d}d`}
+      {/* "gate clear", not "ready" — the clauses passing is not the same claim
+          as the launch having happened, and the two sit one line apart. */}
+      {gate.is_ready ? 'gate clear' : late ? `${Math.abs(d)}d over, not ready` : `not ready · ${d}d`}
     </Pill>
   );
 }
@@ -73,11 +93,15 @@ export function GatePanel({ gate }: { gate: any }) {
       <div className="divide-y divide-line">
         <Clause
           ok={gate.checklist_ok}
-          label="Required checklist items ticked"
+          label="Gating checklist items ticked"
           detail={
+            // Deliberately asymmetric with the device clause below: no devices
+            // recorded genuinely means nothing to verify, whereas no gating
+            // items configured means nobody has decided what "ready" is — which
+            // should not read as a pass.
             gate.checklist_total === 0
-              ? 'No gating items configured for this property'
-              : `${gate.checklist_done} of ${gate.checklist_total} done`
+              ? 'No gating items configured, so there is nothing to check against'
+              : `${gate.checklist_done} of ${gate.checklist_total} gating items done`
           }
         />
         <Clause
@@ -85,7 +109,7 @@ export function GatePanel({ gate }: { gate: any }) {
           label="Installed devices are live"
           detail={
             gate.integrations_total === 0
-              ? 'No devices recorded'
+              ? 'No devices recorded for this property'
               : `${gate.integrations_live} of ${gate.integrations_total} live` +
                 (gate.integrations_stuck > 0
                   ? ` · ${gate.integrations_stuck} blocked or degraded`
@@ -96,9 +120,11 @@ export function GatePanel({ gate }: { gate: any }) {
           ok={gate.blockers_ok}
           label="No open critical or high blockers"
           detail={
-            gate.serious_blockers === 0
-              ? `${plural(gate.open_blockers, 'blocker')} open, none serious`
-              : `${plural(gate.serious_blockers, 'critical or high blocker')} still open`
+            gate.open_blockers === 0
+              ? 'No blockers open'
+              : gate.serious_blockers === 0
+                ? `${plural(gate.open_blockers, 'blocker')} open, none serious`
+                : `${plural(gate.serious_blockers, 'critical or high blocker')} still open`
           }
         />
       </div>
@@ -108,7 +134,7 @@ export function GatePanel({ gate }: { gate: any }) {
 
 /** Portfolio banner: only the properties close enough to a date to matter. */
 export function GoLiveWatch({ gates }: { gates: any[] }) {
-  const watched = gates.filter(isWatched).filter((g) => !g.is_ready);
+  const watched = atRiskGates(gates);
   if (!watched.length) return null;
 
   return (
@@ -122,7 +148,7 @@ export function GoLiveWatch({ gates }: { gates: any[] }) {
         {watched.map((g: any) => {
           const failing = [
             !g.checklist_ok &&
-              `checklist ${g.checklist_done}/${g.checklist_total}`,
+              `gating checklist ${g.checklist_done}/${g.checklist_total}`,
             !g.integrations_ok &&
               `devices ${g.integrations_live}/${g.integrations_total} live`,
             !g.blockers_ok && plural(g.serious_blockers, 'serious blocker')

@@ -6,6 +6,7 @@
 
 import * as React from 'react';
 import { ChevronRight } from 'lucide-react';
+import { plural } from '@/lib/ui-helpers';
 import { cn } from '@/lib/utils';
 
 export function LeadFold({
@@ -34,7 +35,7 @@ export function LeadFold({
               className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-90')}
               aria-hidden
             />
-            {open ? 'Hide' : 'Show'} {count} lead{count === 1 ? '' : 's'}
+            {open ? 'Hide' : 'Show'} {plural(count, 'lead')}
           </button>
         </td>
       </tr>
