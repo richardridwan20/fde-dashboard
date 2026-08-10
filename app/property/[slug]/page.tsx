@@ -1,0 +1,298 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { ExternalLink } from 'lucide-react';
+import {
+  getProperty, getPropertyBlockers, getPropertyIntegrations, getIntegrationTypes,
+  getPropertyChecklist, getPropertyPhotos, getPropertyActivity, getPropertyTasks,
+  getPropertyDrift, getPropertyMeetings, getReadiness, getWorkstreams, STAGES
+} from '@/lib/data';
+import { DEVICE_STATUSES } from '@/lib/enums';
+import { setDeviceStatus, removeDevice, setOnboardingDate, setStage } from '@/lib/actions';
+import { Button, Card, CardHeader, Empty, Pill, enumOptions } from '@/components/ui';
+import { QuickDate, QuickSelect, ConfirmButton } from '@/components/quick-edit';
+import {
+  ClickupRow, DeviceCard, MapEmbed, Metric, Progress, ago, fmtDate, fmtDateTime
+} from '@/components/shared';
+import { Checklist } from '@/components/checklist';
+import { PhotoGrid } from '@/components/photo-grid';
+import { ReadinessPanel } from '@/components/readiness-panel';
+import { BlockerCard } from '@/components/property-blockers';
+import { BlockerDialog } from '@/components/forms/blocker-dialog';
+import { DeviceDialog } from '@/components/forms/device-dialog';
+import { MeetingDialog } from '@/components/forms/meeting-dialog';
+import { PhotoUpload } from '@/components/forms/photo-upload';
+import { ClientDetailsDialog } from '@/components/forms/client-details-dialog';
+
+export const dynamic = 'force-dynamic';
+
+export default async function PropertyPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const property = await getProperty(slug);
+  if (!property) notFound();
+
+  const [
+    blockers, devices, types, checklist, photos, activity, tasks, drift, meetings, readiness, workstreams
+  ] = await Promise.all([
+    getPropertyBlockers(property.id),
+    getPropertyIntegrations(property.id),
+    getIntegrationTypes(),
+    getPropertyChecklist(property.id),
+    getPropertyPhotos(property.id),
+    getPropertyActivity(property.id),
+    getPropertyTasks(property.id),
+    getPropertyDrift(slug),
+    getPropertyMeetings(property.id),
+    getReadiness(),
+    getWorkstreams()
+  ]);
+
+  const rd: any = readiness.find((r: any) => r.property_id === property.id) || {};
+  const driftBy: Record<string, any[]> = {};
+  drift.forEach((d: any) => (driftBy[d.blocker_id] = driftBy[d.blocker_id] || []).push(d));
+  const open = blockers.filter((b: any) => b.state !== 'resolved');
+  const resolved = blockers.filter((b: any) => b.state === 'resolved');
+
+  const detail = (label: string, value?: React.ReactNode) => (
+    <div>
+      <dt className="text-[11px] uppercase tracking-wide text-faint">{label}</dt>
+      <dd className="text-[13px]">{value || <span className="text-faint">—</span>}</dd>
+    </div>
+  );
+
+  return (
+    <main className="space-y-6">
+      {/* ------------------------------------------------------------ header */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-[11px] text-faint">
+            <Link href="/" className="hover:underline">
+              Portfolio
+            </Link>
+            {property.group_name ? ` · ${property.group_name}` : ''}
+          </div>
+          <h1 className="text-lg font-medium">{property.name}</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-faint">
+            {property.fde_owner && <Pill>FDE {property.fde_owner}</Pill>}
+            {property.pic_wasimil && <Pill>PIC {property.pic_wasimil}</Pill>}
+            <span>last activity {ago(property.last_activity_at)}</span>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <QuickSelect
+            value={property.stage}
+            options={STAGES.map((s) => ({ value: s.key, label: s.label }))}
+            onSave={(v) => setStage(property.id, v)}
+          />
+          <QuickDate value={property.onboarding_date} onSave={(v) => setOnboardingDate(property.id, v)} />
+          <ClientDetailsDialog property={property} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Metric
+          label="Open blockers"
+          value={open.length}
+          tone={property.overdue_blocker_count > 0 ? 'bad' : undefined}
+          sub={property.overdue_blocker_count > 0 ? `${property.overdue_blocker_count} past ETA` : 'none past ETA'}
+        />
+        <Metric label="Devices" value={property.integration_count || 0} sub={`${property.integration_blocked || 0} blocked`} />
+        <Metric label="Checklist" value={`${property.checklist_done || 0}/${property.checklist_total || 0}`} />
+        <Metric label="Onboarding" value={fmtDate(property.onboarding_date)} sub={
+          property.days_to_onboarding === null
+            ? 'no date set'
+            : property.days_to_onboarding < 0
+              ? `${Math.abs(property.days_to_onboarding)}d over`
+              : `in ${property.days_to_onboarding}d`
+        } />
+      </div>
+
+      {/* --------------------------------------------------- client details */}
+      <Card>
+        <CardHeader title="Client details" right={<ClientDetailsDialog property={property} />} />
+        <div className="p-4">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+            {detail('Contact', property.contact_person)}
+            {detail('Hotel PIC', property.pic_hotel_staff)}
+            {detail('Postal code', property.postal_code)}
+            {detail('City', [property.city, property.prefecture].filter(Boolean).join(', '))}
+            <div className="col-span-2 sm:col-span-3">
+              {detail('Address', property.address)}
+              {property.address_ja && <div className="text-[12px] text-sub">{property.address_ja}</div>}
+            </div>
+            {detail(
+              'Website',
+              property.website_url && (
+                <a
+                  href={property.website_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 hover:underline"
+                >
+                  visit <ExternalLink className="h-3 w-3" />
+                </a>
+              )
+            )}
+          </dl>
+          <div className="mt-4">
+            <MapEmbed property={property} />
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* ------------------------------------------------------ readiness */}
+        <Card>
+          <CardHeader
+            title="Readiness"
+            sub="Manual until the Hasura connector lands"
+            right={rd.all_ready ? <Pill tone="good">all ready</Pill> : undefined}
+          />
+          <ReadinessPanel property={{ ...rd, id: property.id }} />
+        </Card>
+
+        {/* -------------------------------------------------------- devices */}
+        <Card>
+          <CardHeader
+            title="Devices"
+            right={<DeviceDialog propertyId={property.id} types={types} />}
+          />
+          <div className="divide-y divide-line">
+            {devices.map((d: any) => (
+              <DeviceCard key={d.id} d={d}>
+                <QuickSelect
+                  value={d.status}
+                  options={enumOptions(DEVICE_STATUSES)}
+                  onSave={(v) => setDeviceStatus(d.id, v)}
+                />
+                <ConfirmButton onConfirm={() => removeDevice(d.id)} confirmLabel="Confirm remove">
+                  remove
+                </ConfirmButton>
+              </DeviceCard>
+            ))}
+            {!devices.length && <Empty>No devices recorded for this property.</Empty>}
+          </div>
+        </Card>
+      </div>
+
+      {/* -------------------------------------------------------- blockers */}
+      <Card>
+        <CardHeader
+          title="Blockers"
+          sub={`${open.length} open`}
+          right={
+            <BlockerDialog
+              propertyId={property.id}
+              devices={types}
+              workstreams={workstreams}
+            />
+          }
+        />
+        <div className="divide-y divide-line">
+          {open.map((b: any) => (
+            <BlockerCard key={b.id} b={b} drift={driftBy[b.id]} workstreams={workstreams} />
+          ))}
+          {!open.length && <Empty>Nothing is blocked right now.</Empty>}
+        </div>
+        {resolved.length > 0 && (
+          <details className="border-t border-line px-4 py-2.5">
+            <summary className="cursor-pointer list-none text-[12px] text-sub underline decoration-dotted">
+              Resolved ({resolved.length})
+            </summary>
+            <ul className="mt-2 space-y-1 text-[12px] text-faint">
+              {resolved.map((b: any) => (
+                <li key={b.id}>
+                  {b.title} · {fmtDate(b.resolved_at)}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </Card>
+
+      {/* ------------------------------------------------------- checklist */}
+      <Card>
+        <CardHeader
+          title="Onboarding checklist"
+          right={<Progress done={property.checklist_done || 0} total={property.checklist_total || 0} />}
+        />
+        <Checklist propertyId={property.id} items={checklist} />
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* ------------------------------------------------------ meetings */}
+        <Card>
+          <CardHeader
+            title="Meetings"
+            right={
+              <MeetingDialog propertyId={property.id} workstreams={workstreams} />
+            }
+          />
+          <div className="divide-y divide-line">
+            {meetings.slice(0, 6).map((m: any) => (
+              <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                <div className="min-w-0">
+                  <Link href={`/meetings?id=${m.id}`} className="text-[13px] hover:underline">
+                    {m.title}
+                  </Link>
+                  <div className="text-[11px] text-faint">
+                    {fmtDateTime(m.starts_at)} · {m.kind.replace(/_/g, ' ')}
+                    {m.has_notes ? ' · notes' : ''}
+                    {m.photo_count > 0 ? ` · ${m.photo_count} photos` : ''}
+                  </div>
+                </div>
+                <Pill tone={m.state === 'held' ? 'good' : m.state === 'cancelled' ? 'bad' : 'info'}>
+                  {m.state.replace(/_/g, ' ')}
+                </Pill>
+              </div>
+            ))}
+            {!meetings.length && <Empty>No meetings scheduled.</Empty>}
+          </div>
+        </Card>
+
+        {/* -------------------------------------------------------- clickup */}
+        <Card>
+          <CardHeader title="ClickUp" sub={`${tasks.length} linked tasks`} />
+          <div className="max-h-80 divide-y divide-line overflow-y-auto">
+            {tasks.slice(0, 20).map((t: any) => (
+              <ClickupRow key={t.id} t={t} />
+            ))}
+            {!tasks.length && <Empty>No tasks matched to this property.</Empty>}
+          </div>
+        </Card>
+      </div>
+
+      {/* ---------------------------------------------------------- photos */}
+      <Card>
+        <CardHeader
+          title="Photos"
+          sub={`${photos.length} uploaded`}
+          right={<PhotoUpload propertyId={property.id} devices={devices} meetings={meetings} />}
+        />
+        <PhotoGrid photos={photos} />
+      </Card>
+
+      {/* -------------------------------------------------------- activity */}
+      <Card>
+        <CardHeader title="Recent activity" />
+        <ul className="divide-y divide-line">
+          {activity.map((a: any) => (
+            <li key={a.id} className="px-4 py-2.5">
+              <div className="text-[13px]">{a.summary}</div>
+              <div className="text-[11px] text-faint">
+                {ago(a.occurred_at)} · {a.source}
+                {a.actor_name ? ` · ${a.actor_name}` : ''}
+              </div>
+            </li>
+          ))}
+          {!activity.length && <Empty>Nothing recorded yet.</Empty>}
+        </ul>
+      </Card>
+
+      <div>
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/">Back to portfolio</Link>
+        </Button>
+      </div>
+    </main>
+  );
+}
