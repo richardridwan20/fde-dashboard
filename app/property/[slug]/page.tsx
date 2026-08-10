@@ -82,9 +82,9 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
           <QuickSelect
             value={property.stage}
             options={STAGES.map((s) => ({ value: s.key, label: s.label }))}
-            onSave={(v) => setStage(property.id, v)}
+            onSave={setStage.bind(null, property.id)}
           />
-          <QuickDate value={property.onboarding_date} onSave={(v) => setOnboardingDate(property.id, v)} />
+          <QuickDate value={property.onboarding_date} onSave={setOnboardingDate.bind(null, property.id)} />
           <ClientDetailsDialog property={property} />
         </div>
       </div>
@@ -163,9 +163,9 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
                 <QuickSelect
                   value={d.status}
                   options={enumOptions(DEVICE_STATUSES)}
-                  onSave={(v) => setDeviceStatus(d.id, v)}
+                  onSave={setDeviceStatus.bind(null, d.id)}
                 />
-                <ConfirmButton onConfirm={() => removeDevice(d.id)} confirmLabel="Confirm remove">
+                <ConfirmButton onConfirm={removeDevice.bind(null, d.id)} confirmLabel="Confirm remove">
                   remove
                 </ConfirmButton>
               </DeviceCard>

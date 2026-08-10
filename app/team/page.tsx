@@ -109,7 +109,7 @@ export default async function Team() {
                         <QuickSelect
                           value={t.state}
                           options={enumOptions(RAMP_STATES)}
-                          onSave={(v) => setRampTaskState(t.id, v, t.title)}
+                          onSave={setRampTaskState.bind(null, t.id, t.title)}
                         />
                       </li>
                     ))}

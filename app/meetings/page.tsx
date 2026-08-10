@@ -126,7 +126,7 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
                   <QuickSelect
                     value={selected.state}
                     options={enumOptions(MEETING_STATES)}
-                    onSave={(v) => setMeetingState(selected.id, v)}
+                    onSave={setMeetingState.bind(null, selected.id)}
                   />
                   <MeetingDialog
                     meeting={selected}
@@ -137,7 +137,7 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
                       </Button>
                     }
                   />
-                  <ConfirmButton onConfirm={() => deleteMeeting(selected.id)} confirmLabel="Confirm delete" />
+                  <ConfirmButton onConfirm={deleteMeeting.bind(null, selected.id)} confirmLabel="Confirm delete" />
                 </div>
               }
             />

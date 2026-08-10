@@ -33,9 +33,29 @@ function walk(dir, out = []) {
 const files = walk(ROOT);
 const problems = [];
 
+// Callback props that cross into a client component. A server component must
+// pass a *server action reference* — `action.bind(null, id)` — not an inline
+// arrow, or React throws "Event handlers cannot be passed to Client Component
+// props" when it tries to serialise the tree.
+const CALLBACK_PROPS = ['onSave', 'onConfirm', 'onRun', 'onValueChange', 'onCheckedChange', 'onClick'];
+
 for (const file of files) {
   const src = readFileSync(file, 'utf8');
-  if (!/^\s*['"]use client['"]/m.test(src.slice(0, 200))) continue;
+  const isClient = /^\s*['"]use client['"]/m.test(src.slice(0, 200));
+
+  if (!isClient) {
+    for (const prop of CALLBACK_PROPS) {
+      const re = new RegExp(`${prop}=\\{\\s*(?:\\(|async\\s|function\\b)`, 'g');
+      for (const m of src.matchAll(re)) {
+        const line = src.slice(0, m.index).split('\n').length;
+        problems.push(
+          `${relative(ROOT, file)}:${line} passes an inline function to '${prop}' from a server component.\n` +
+            `  React cannot serialise it. Use a bound server action: action.bind(null, id).`
+        );
+      }
+    }
+    continue;
+  }
 
   const names = [];
   for (const m of src.matchAll(/^export\s+(?:const|let|function|async function)\s+([A-Za-z_$][\w$]*)/gm)) {

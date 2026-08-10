@@ -71,7 +71,7 @@ export default async function Devices() {
                   <QuickSelect
                     value={d.status}
                     options={enumOptions(DEVICE_STATUSES)}
-                    onSave={(v) => setDeviceStatus(d.id, v)}
+                    onSave={setDeviceStatus.bind(null, d.id)}
                   />
                 </div>
               </div>

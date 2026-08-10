@@ -386,8 +386,15 @@ export async function deleteMeeting(id: string) {
 
 // --------------------------------------------------------------- ramp-up
 
-/** First-week homework. Not a task tracker — just enough to see the ramp. */
-export async function setRampTaskState(id: string, state: string, title: string) {
+/**
+ * First-week homework. Not a task tracker — just enough to see the ramp.
+ *
+ * Argument order is (id, title, state) so a server component can pre-bind the
+ * first two — `setRampTaskState.bind(null, t.id, t.title)` — and hand the
+ * result to a client component. Passing an inline arrow instead throws
+ * "Event handlers cannot be passed to Client Component props".
+ */
+export async function setRampTaskState(id: string, title: string, state: string) {
   return run(async () => {
     const s = await getSupabase();
     const patch: any = { state };
