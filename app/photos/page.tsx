@@ -49,7 +49,6 @@ export default async function Photos({ searchParams }: { searchParams: Promise<a
                 {client.name}
               </Link>
             }
-            sub={`${items.length} photo${items.length > 1 ? 's' : ''}`}
           />
           <PhotoGrid photos={items} />
         </Card>

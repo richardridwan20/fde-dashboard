@@ -11,6 +11,7 @@ export default async function Clickup() {
   ]);
 
   const open = tasks.filter((t: any) => !['done', 'passed_testing'].includes(t.state));
+  const done = tasks.filter((t: any) => ['done', 'passed_testing'].includes(t.state));
   const unmatched = tasks.filter((t: any) => !t.property_id);
   const synced = tasks[0]?.synced_at;
 
@@ -45,6 +46,30 @@ export default async function Clickup() {
           </div>
         </Card>
       ))}
+
+      {/* Without this the page went blank whenever every synced task was
+          finished — stat cards and nothing else, which reads as "the sync is
+          broken" rather than "everything is done". */}
+      {open.length === 0 && tasks.length > 0 && (
+        <Card>
+          <CardHeader title="Nothing open" sub="Every synced task is done or passed testing" />
+        </Card>
+      )}
+
+      {done.length > 0 && (
+        <details>
+          <summary className="cursor-pointer list-none text-[12px] text-sub underline decoration-dotted">
+            Done and passed testing ({done.length})
+          </summary>
+          <Card className="mt-3">
+            <div className="divide-y divide-line">
+              {done.map((t: any) => (
+                <ClickupRow key={t.id} t={t} />
+              ))}
+            </div>
+          </Card>
+        </details>
+      )}
 
       {unmatched.length > 0 && (
         <Card>

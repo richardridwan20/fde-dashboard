@@ -53,6 +53,12 @@ export default async function Team() {
         const theirMeetings = upcoming.filter((x: any) =>
           (x.attendees || []).some((a: string) => a === m.short_name || a === m.full_name)
         );
+        // Someone who started in the last 60 days gets the ramp panel whether or
+        // not a template exists for their role — otherwise a new joiner with no
+        // template silently looks like a veteran.
+        const isNewJoiner =
+          !!m.started_on &&
+          (Date.now() - new Date(m.started_on).getTime()) / 86_400_000 <= 60;
 
         return (
           <Card key={m.id}>
@@ -64,7 +70,7 @@ export default async function Team() {
                   {m.started_on && <span className="text-[11px] font-normal text-faint">since {fmtDate(m.started_on)}</span>}
                 </span>
               }
-              sub={`${m.properties_owned || 0} properties · last active ${ago(m.last_activity_at)}`}
+              sub={`${m.properties_owned || 0} propert${m.properties_owned === 1 ? 'y' : 'ies'} · last active ${ago(m.last_activity_at)}`}
               right={tasks.length > 0 ? <Progress done={done} total={tasks.length} /> : undefined}
             />
 
@@ -92,8 +98,14 @@ export default async function Team() {
 
               <div>
                 <div className="px-4 py-2 text-[11px] uppercase tracking-wide text-faint">
-                  {tasks.length ? 'First week homework' : 'Upcoming meetings'}
+                  {isNewJoiner ? 'First week homework' : 'Upcoming meetings'}
                 </div>
+                {isNewJoiner && !tasks.length && (
+                  <Empty>
+                    No ramp template for the {String(m.role).replace(/_/g, ' ')} role yet, so nothing
+                    is being tracked for {m.short_name || m.full_name}.
+                  </Empty>
+                )}
                 {tasks.length > 0 ? (
                   <ul className="divide-y divide-line">
                     {tasks.map((t: any) => (
@@ -114,7 +126,7 @@ export default async function Team() {
                       </li>
                     ))}
                   </ul>
-                ) : (
+                ) : isNewJoiner ? null : (
                   <ul className="divide-y divide-line">
                     {theirMeetings.slice(0, 6).map((x: any) => (
                       <li key={x.id} className="px-4 py-2">
