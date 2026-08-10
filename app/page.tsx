@@ -5,6 +5,7 @@ import {
 } from '@/lib/data';
 import { Button, Card, CardHeader, Empty, Pill, TableWrap } from '@/components/ui';
 import { DriftBanner } from '@/components/clickup';
+import { LeadFold } from '@/components/lead-fold';
 import { Metric, Progress, StagePill, StatePill, ago, fmtDate } from '@/components/shared';
 
 export const dynamic = 'force-dynamic';
@@ -63,91 +64,103 @@ export default async function Overview() {
 
       <DriftBanner drift={drift} />
 
-      {bucketed.map(({ group, items }: any) => (
-        <Card key={group.id || 'independent'}>
-          <CardHeader
-            title={group.name}
-            sub={`${items.length} propert${items.length === 1 ? 'y' : 'ies'}`}
-            right={
-              <span className="text-[11px] text-faint">
-                {items.filter((i: any) => i.open_blocker_count > 0).length} with open blockers
-              </span>
-            }
-          />
-          <TableWrap>
-            <table className="w-full min-w-[52rem] text-left text-[13px]">
-              <thead className="text-[11px] uppercase tracking-wide text-faint">
-                <tr className="border-b border-line">
-                  <th className="px-4 py-2 font-normal">Property</th>
-                  <th className="px-4 py-2 font-normal">Stage</th>
-                  <th className="px-4 py-2 font-normal">Onboarding</th>
-                  <th className="px-4 py-2 font-normal">Checklist</th>
-                  <th className="px-4 py-2 font-normal">Readiness</th>
-                  <th className="px-4 py-2 font-normal">Top blocker</th>
-                  <th className="px-4 py-2 font-normal">Activity</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {items.map((r: any) => {
-                  const rd: any = ready.get(r.id);
-                  return (
-                    <tr key={r.id} className="align-middle hover:bg-soft">
-                      <td className="px-4 py-2.5">
-                        <Link href={`/property/${r.slug}`} className="font-medium hover:underline">
-                          {r.name}
-                        </Link>
-                        <div className="text-[11px] text-faint">
-                          {[r.city, r.prefecture].filter(Boolean).join(', ') || '—'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <StagePill stage={r.stage} />
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <div>{fmtDate(r.onboarding_date)}</div>
-                        {r.days_to_onboarding !== null && (
-                          <div
-                            className={
-                              isPastDue(r) ? 'text-[11px] text-destructive' : 'text-[11px] text-faint'
-                            }
-                          >
-                            {r.days_to_onboarding < 0
-                              ? `${Math.abs(r.days_to_onboarding)}d over`
-                              : `in ${r.days_to_onboarding}d`}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <Progress done={r.checklist_done || 0} total={r.checklist_total || 0} />
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex flex-wrap gap-1">
-                          <StatePill state={rd?.pms_readiness || 'unknown'} />
-                          {rd?.devices_stuck > 0 && <Pill tone="bad">{rd.devices_stuck} stuck</Pill>}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        {r.top_blocker_title ? (
-                          <div className="max-w-[16rem]">
-                            <div className="truncate">{r.top_blocker_title}</div>
-                            <div className="text-[11px] text-faint">
-                              {r.open_blocker_count} open
-                              {r.overdue_blocker_count > 0 && ` · ${r.overdue_blocker_count} past ETA`}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-faint">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-[11px] text-faint">{ago(r.last_activity_at)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </TableWrap>
-        </Card>
-      ))}
+      {bucketed.map(({ group, items }: any) => {
+        // Leads sit behind a fold — they are prospects, not work in flight.
+        const leads = items.filter((i: any) => i.stage === 'lead');
+        const active = items.filter((i: any) => i.stage !== 'lead');
+
+        const row = (r: any) => {
+          const rd: any = ready.get(r.id);
+          return (
+            <tr key={r.id} className="align-middle hover:bg-soft">
+              <td className="px-4 py-2.5">
+                <Link href={`/property/${r.slug}`} className="font-medium hover:underline">
+                  {r.name}
+                </Link>
+                <div className="text-[11px] text-faint">
+                  {[r.city, r.prefecture].filter(Boolean).join(', ') || '—'}
+                </div>
+              </td>
+              <td className="px-4 py-2.5">
+                <StagePill stage={r.stage} />
+              </td>
+              <td className="px-4 py-2.5">
+                <div>{fmtDate(r.onboarding_date)}</div>
+                {r.days_to_onboarding !== null && (
+                  <div
+                    className={
+                      isPastDue(r) ? 'text-[11px] text-destructive' : 'text-[11px] text-faint'
+                    }
+                  >
+                    {r.days_to_onboarding < 0
+                      ? `${Math.abs(r.days_to_onboarding)}d over`
+                      : `in ${r.days_to_onboarding}d`}
+                  </div>
+                )}
+              </td>
+              <td className="px-4 py-2.5">
+                <Progress done={r.checklist_done || 0} total={r.checklist_total || 0} />
+              </td>
+              <td className="px-4 py-2.5">
+                <div className="flex flex-wrap gap-1">
+                  <StatePill state={rd?.pms_readiness || 'unknown'} />
+                  {rd?.devices_stuck > 0 && <Pill tone="bad">{rd.devices_stuck} stuck</Pill>}
+                </div>
+              </td>
+              <td className="px-4 py-2.5">
+                {r.top_blocker_title ? (
+                  <div className="max-w-[16rem]">
+                    <div className="truncate">{r.top_blocker_title}</div>
+                    <div className="text-[11px] text-faint">
+                      {r.open_blocker_count} open
+                      {r.overdue_blocker_count > 0 && ` · ${r.overdue_blocker_count} past ETA`}
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-faint">—</span>
+                )}
+              </td>
+              <td className="px-4 py-2.5 text-[11px] text-faint">{ago(r.last_activity_at)}</td>
+            </tr>
+          );
+        };
+
+        return (
+          <Card key={group.id || 'independent'}>
+            <CardHeader
+              title={group.name}
+              sub={
+                `${items.length} propert${items.length === 1 ? 'y' : 'ies'}` +
+                (leads.length ? ` · ${leads.length} lead${leads.length === 1 ? '' : 's'}` : '')
+              }
+              right={
+                <span className="text-[11px] text-faint">
+                  {items.filter((i: any) => i.open_blocker_count > 0).length} with open blockers
+                </span>
+              }
+            />
+            <TableWrap>
+              <table className="w-full min-w-[52rem] text-left text-[13px]">
+                <thead className="text-[11px] uppercase tracking-wide text-faint">
+                  <tr className="border-b border-line">
+                    <th className="px-4 py-2 font-normal">Property</th>
+                    <th className="px-4 py-2 font-normal">Stage</th>
+                    <th className="px-4 py-2 font-normal">Onboarding</th>
+                    <th className="px-4 py-2 font-normal">Checklist</th>
+                    <th className="px-4 py-2 font-normal">Readiness</th>
+                    <th className="px-4 py-2 font-normal">Top blocker</th>
+                    <th className="px-4 py-2 font-normal">Activity</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">{active.map(row)}</tbody>
+                <LeadFold count={leads.length} colSpan={7}>
+                  {leads.map(row)}
+                </LeadFold>
+              </table>
+            </TableWrap>
+          </Card>
+        );
+      })}
 
       {!rows.length && (
         <Card>

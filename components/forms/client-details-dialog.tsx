@@ -59,7 +59,7 @@ export function ClientDetailsDialog({ property }: { property: any }) {
       onOpenChange={setOpen}
       wide
       title="Edit client details"
-      description="Address feeds the map and Street View below."
+      description="Address feeds the map below."
       trigger={
         <Button size="sm" variant="outline">
           <Pencil className="h-3.5 w-3.5" /> Edit details

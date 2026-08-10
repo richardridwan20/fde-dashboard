@@ -15,6 +15,7 @@ import {
   ClickupRow, DeviceCard, MapEmbed, Metric, Progress, ago, fmtDate, fmtDateTime
 } from '@/components/shared';
 import { Checklist } from '@/components/checklist';
+import { Paginated } from '@/components/paginate';
 import { PhotoGrid } from '@/components/photo-grid';
 import { ReadinessPanel } from '@/components/readiness-panel';
 import { BlockerCard } from '@/components/property-blockers';
@@ -274,9 +275,11 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
 
       {/* -------------------------------------------------------- activity */}
       <Card>
-        <CardHeader title="Recent activity" />
-        <ul className="divide-y divide-line">
-          {activity.map((a: any) => (
+        <CardHeader title="Recent activity" sub={`${activity.length} events`} />
+        <Paginated
+          noun="events"
+          empty="Nothing recorded yet."
+          items={activity.map((a: any) => (
             <li key={a.id} className="px-4 py-2.5">
               <div className="text-[13px]">{a.summary}</div>
               <div className="text-[11px] text-faint">
@@ -285,8 +288,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
               </div>
             </li>
           ))}
-          {!activity.length && <Empty>Nothing recorded yet.</Empty>}
-        </ul>
+        />
       </Card>
 
       <div>

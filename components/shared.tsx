@@ -148,20 +148,12 @@ const mapsQ = (p: any) =>
 export function MapEmbed({ property }: { property: any }) {
   if (!property.address && !property.city) return null;
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <iframe
-        title="Map"
-        loading="lazy"
-        className="h-56 w-full rounded-lg border border-line"
-        src={`https://www.google.com/maps?q=${mapsQ(property)}&output=embed`}
-      />
-      <iframe
-        title="Street View"
-        loading="lazy"
-        className="h-56 w-full rounded-lg border border-line"
-        src={`https://maps.google.com/maps?q=${mapsQ(property)}&layer=c&cbp=11,0,0,0,0&output=svembed`}
-      />
-    </div>
+    <iframe
+      title="Map"
+      loading="lazy"
+      className="h-56 w-full rounded-lg border border-line"
+      src={`https://www.google.com/maps?q=${mapsQ(property)}&output=embed`}
+    />
   );
 }
 

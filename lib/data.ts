@@ -46,7 +46,7 @@ export const getPropertyPhotos = (id: string) =>
 export const getMeetingPhotos = (meetingId: string) =>
   q('v_photos', (b) => b.eq('meeting_id', meetingId).order('created_at'));
 export const getPropertyActivity = (id: string) =>
-  q('v_activity', (b) => b.eq('property_id', id).order('occurred_at', { ascending: false }).limit(20));
+  q('v_activity', (b) => b.eq('property_id', id).order('occurred_at', { ascending: false }).limit(100));
 export const getRecentChanges = () =>
   q('v_recent_changes', (b) => b.order('occurred_at', { ascending: false }).limit(60));
 
