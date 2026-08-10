@@ -3,7 +3,8 @@
 import { ExternalLink } from 'lucide-react';
 import { patchBlocker } from '@/lib/actions';
 import { BLOCKER_STATES, SEVERITIES } from '@/lib/enums';
-import { Pill, enumOptions, severityTone } from '@/components/ui';
+import { Pill } from '@/components/ui';
+import { enumOptions, severityTone } from '@/lib/ui-helpers';
 import { QuickDate, QuickSelect, QuickText } from '@/components/quick-edit';
 
 /**

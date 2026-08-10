@@ -5,9 +5,8 @@ import { Upload } from 'lucide-react';
 import { uploadPhotos } from '@/lib/actions';
 import { PHOTO_CATEGORIES } from '@/lib/enums';
 import { IMG_MAX_DIM, IMG_QUALITY, MAX_UPLOAD_BYTES } from '@/lib/config';
-import {
-  Button, Dialog, Field, FieldControl, FieldLabel, Input, Select, enumOptions, toast
-} from '@/components/ui';
+import { Button, Dialog, Field, FieldControl, FieldLabel, Input, Select, toast } from '@/components/ui';
+import { enumOptions } from '@/lib/ui-helpers';
 
 /**
  * Site photos come off phones at 4–8 MB each and Vercel rejects a request body

@@ -6,7 +6,8 @@ import {
   Activity, AlertTriangle, Camera, CheckCircle2, CreditCard, Cpu, Globe,
   Monitor, Network, Printer, ScanLine, Server, Smartphone, Wifi
 } from 'lucide-react';
-import { Card, Pill, severityTone, stateTone } from '@/components/ui';
+import { Card, Pill } from '@/components/ui';
+import { severityTone, stateTone } from '@/lib/ui-helpers';
 import { cn } from '@/lib/utils';
 
 /* ------------------------------------------------------------------ dates */

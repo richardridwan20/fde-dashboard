@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { getTeam, getRampTasks, getAllBlockers, getAllMeetings } from '@/lib/data';
 import { RAMP_STATES } from '@/lib/enums';
 import { setRampTaskState } from '@/lib/actions';
-import { Card, CardHeader, Empty, Pill, enumOptions } from '@/components/ui';
+import { Card, CardHeader, Empty, Pill } from '@/components/ui';
+import { enumOptions } from '@/lib/ui-helpers';
 import { QuickSelect } from '@/components/quick-edit';
 import { Metric, Progress, ago, fmtDate } from '@/components/shared';
 

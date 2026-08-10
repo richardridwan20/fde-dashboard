@@ -7,9 +7,8 @@ import { CalendarPlus, ExternalLink, Video } from 'lucide-react';
 import { saveMeeting } from '@/lib/actions';
 import { meetingSchema, type MeetingValues } from '@/lib/schemas';
 import { MEETING_KINDS, MEETING_STATES } from '@/lib/enums';
-import {
-  Button, Dialog, Field, FieldControl, FieldLabel, Input, Select, Textarea, enumOptions, toast
-} from '@/components/ui';
+import { Button, Dialog, Field, FieldControl, FieldLabel, Input, Select, Textarea, toast } from '@/components/ui';
+import { enumOptions } from '@/lib/ui-helpers';
 
 /** ISO → the `YYYY-MM-DDTHH:mm` that datetime-local expects, in local time. */
 function toLocalInput(iso?: string | null) {

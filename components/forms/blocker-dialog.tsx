@@ -7,9 +7,8 @@ import { Plus } from 'lucide-react';
 import { saveBlocker } from '@/lib/actions';
 import { blockerSchema, type BlockerValues } from '@/lib/schemas';
 import { BLOCKER_STATES, SEVERITIES } from '@/lib/enums';
-import {
-  Button, Dialog, Field, FieldControl, FieldLabel, Input, Select, Textarea, enumOptions, toast
-} from '@/components/ui';
+import { Button, Dialog, Field, FieldControl, FieldLabel, Input, Select, Textarea, toast } from '@/components/ui';
+import { enumOptions } from '@/lib/ui-helpers';
 
 export function BlockerDialog({
   propertyId,

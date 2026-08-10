@@ -7,7 +7,8 @@ import { Plus } from 'lucide-react';
 import { addDevice } from '@/lib/actions';
 import { deviceSchema, type DeviceValues } from '@/lib/schemas';
 import { DEVICE_STATUSES } from '@/lib/enums';
-import { Button, Dialog, Field, FieldControl, FieldLabel, Select, enumOptions, toast } from '@/components/ui';
+import { Button, Dialog, Field, FieldControl, FieldLabel, Select, toast } from '@/components/ui';
+import { enumOptions } from '@/lib/ui-helpers';
 
 export function DeviceDialog({ propertyId, types = [] }: { propertyId: string; types?: any[] }) {
   const [open, setOpen] = React.useState(false);

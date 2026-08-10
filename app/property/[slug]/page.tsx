@@ -8,7 +8,8 @@ import {
 } from '@/lib/data';
 import { DEVICE_STATUSES } from '@/lib/enums';
 import { setDeviceStatus, removeDevice, setOnboardingDate, setStage } from '@/lib/actions';
-import { Button, Card, CardHeader, Empty, Pill, enumOptions } from '@/components/ui';
+import { Button, Card, CardHeader, Empty, Pill } from '@/components/ui';
+import { enumOptions } from '@/lib/ui-helpers';
 import { QuickDate, QuickSelect, ConfirmButton } from '@/components/quick-edit';
 import {
   ClickupRow, DeviceCard, MapEmbed, Metric, Progress, ago, fmtDate, fmtDateTime

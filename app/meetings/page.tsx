@@ -5,7 +5,8 @@ import {
 } from '@/lib/data';
 import { MEETING_STATES } from '@/lib/enums';
 import { deleteMeeting, setMeetingState } from '@/lib/actions';
-import { Button, Card, CardHeader, Empty, Pill, enumOptions } from '@/components/ui';
+import { Button, Card, CardHeader, Empty, Pill } from '@/components/ui';
+import { enumOptions, stateTone } from '@/lib/ui-helpers';
 import { ConfirmButton, QuickSelect } from '@/components/quick-edit';
 import { Metric, fmtDateTime } from '@/components/shared';
 import { MeetingNotes } from '@/components/meeting-notes';
@@ -14,9 +15,6 @@ import { PhotoUpload } from '@/components/forms/photo-upload';
 import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
-
-const stateTone = (s: string) =>
-  s === 'held' ? 'good' : s === 'cancelled' || s === 'no_show' ? 'bad' : 'info';
 
 export default async function Meetings({ searchParams }: { searchParams: Promise<any> }) {
   const sp = await searchParams;

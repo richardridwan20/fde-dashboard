@@ -75,6 +75,11 @@ lib/report.ts     generates the weekly status in the FDE hub format
 - **Actions never throw to the UI.** They return `{ ok, message }` and the caller raises a toast.
 - **Nothing is invented.** If a value did not come from a source, the UI says so rather than filling
   the gap. Rows that could not be imported are recorded in `sync_exceptions`.
+- **Never export a plain function from a `'use client'` module.** Its exports become client
+  references; a server component that *calls* one throws at request time
+  ("Attempted to call stateTone() from the server"). `next build` cannot catch this because every
+  page is force-dynamic and nothing renders during the build. Shared helpers live in
+  `lib/ui-helpers.ts`. `npm run check` enforces it and runs automatically before `npm run build`.
 
 ## Known gaps
 

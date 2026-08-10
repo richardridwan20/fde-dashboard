@@ -3,6 +3,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "check": "node scripts/check-client-boundary.mjs",
+    "prebuild": "node scripts/check-client-boundary.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

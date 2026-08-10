@@ -2,7 +2,7 @@
 
 import { setReadiness } from '@/lib/actions';
 import { READINESS } from '@/lib/enums';
-import { enumOptions } from '@/components/ui';
+import { enumOptions } from '@/lib/ui-helpers';
 import { QuickSelect } from '@/components/quick-edit';
 import { ago } from '@/components/shared';
 

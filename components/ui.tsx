@@ -15,6 +15,9 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { Check, ChevronDown, Loader2, X } from 'lucide-react';
 import { Toaster as SonnerToaster } from 'sonner';
 import { cn } from '@/lib/utils';
+// Tone helpers are plain functions in lib/ so server components can call them —
+// anything exported from this file is a client reference. See lib/ui-helpers.ts.
+import { severityTone } from '@/lib/ui-helpers';
 
 export { toast } from 'sonner';
 
@@ -225,14 +228,6 @@ export function Select({
   );
 }
 
-/** Turns 'blocked_on_client' into 'Blocked on client' for enum-backed selects. */
-export const humanise = (s: string) => {
-  const t = s.replace(/_/g, ' ');
-  return t.charAt(0).toUpperCase() + t.slice(1);
-};
-export const enumOptions = (values: readonly string[]) =>
-  values.map((v) => ({ value: v, label: humanise(v) }));
-
 /* --------------------------------------------------------------- checkbox */
 
 export function Checkbox({
@@ -386,20 +381,6 @@ export function Pill({
     </span>
   );
 }
-
-export const severityTone = (s: string) =>
-  s === 'critical' ? 'bad' : s === 'high' ? 'warn' : s === 'medium' ? 'info' : 'neutral';
-
-export const stateTone = (s: string) =>
-  s === 'resolved' || s === 'live' || s === 'ready' || s === 'done'
-    ? 'good'
-    : s === 'blocked' || s === 'blocked_on_eng' || s === 'not_ready'
-      ? 'bad'
-      : s === 'blocked_on_client' || s === 'degraded' || s === 'partial'
-        ? 'warn'
-        : s === 'in_progress'
-          ? 'info'
-          : 'neutral';
 
 export function SeverityLegend() {
   return (

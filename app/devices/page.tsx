@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { getAllIntegrations, getIntegrationTypes, getReadiness } from '@/lib/data';
 import { DEVICE_STATUSES } from '@/lib/enums';
 import { setDeviceStatus } from '@/lib/actions';
-import { Card, CardHeader, Empty, Pill, enumOptions } from '@/components/ui';
+import { Card, CardHeader, Empty, Pill } from '@/components/ui';
+import { enumOptions } from '@/lib/ui-helpers';
 import { QuickSelect } from '@/components/quick-edit';
 import { DeviceIcon, Metric, StatePill, ago } from '@/components/shared';
 
