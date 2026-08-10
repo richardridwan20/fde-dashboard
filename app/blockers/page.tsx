@@ -4,6 +4,7 @@ import { Card, SeverityLegend } from '@/components/ui';
 import { DriftBanner } from '@/components/clickup';
 import { BlockerCard } from '@/components/property-blockers';
 import { BlockerDialog } from '@/components/forms/blocker-dialog';
+import { WaitingOnClient } from '@/components/waiting-on-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,12 +18,22 @@ export default async function Blockers({ searchParams }: { searchParams: Promise
   drift.forEach((d: any) => (driftBy[d.blocker_id] = driftBy[d.blocker_id] || []).push(d));
 
   const sorted = [...all].sort((a: any, b: any) => {
-    if (sort === 'severity') return SEVERITIES.indexOf(a.severity) - SEVERITIES.indexOf(b.severity);
+    if (sort === 'severity') {
+      // indexOf returns -1 for anything outside the enum, which sorted unknown
+      // severities above critical. Push them to the end instead.
+      const rank = (s: string) => (SEVERITIES.indexOf(s) === -1 ? 99 : SEVERITIES.indexOf(s));
+      return rank(a.severity) - rank(b.severity);
+    }
     if (sort === 'age') return b.age_days - a.age_days;
+    if (sort === 'waiting') return (b.waiting_days ?? -1) - (a.waiting_days ?? -1);
     return (a.eta || '9999').localeCompare(b.eta || '9999');
   });
   const overdue = sorted.filter((b: any) => b.is_overdue);
   const onTrack = sorted.filter((b: any) => !b.is_overdue);
+  // Longest silence first — the question is "what has gone quiet", not "what is newest".
+  const waiting = [...all]
+    .filter((b: any) => b.state === 'blocked_on_client')
+    .sort((a: any, b: any) => (b.waiting_days ?? 0) - (a.waiting_days ?? 0));
 
   const Group = ({ title, items, empty }: any) => (
     <section className="mb-8">
@@ -50,7 +61,7 @@ export default async function Blockers({ searchParams }: { searchParams: Promise
         <h1 className="text-lg font-medium">Blockers</h1>
         <div className="flex flex-wrap items-center gap-3">
           <div className="text-[12px] text-sub">Sort:{' '}
-            {['eta','severity','age'].map((s) => (
+            {['eta','severity','age','waiting'].map((s) => (
               <Link key={s} href={'/blockers?sort=' + s} className={'ml-2 ' + (sort === s ? 'font-medium text-ink' : 'underline')}>{s}</Link>
             ))}
           </div>
@@ -60,6 +71,8 @@ export default async function Blockers({ searchParams }: { searchParams: Promise
       <div className="mb-4 text-[12px] text-faint">Edit inline. Every change is recorded. <SeverityLegend /></div>
 
       <div className="mb-6"><DriftBanner drift={drift} /></div>
+
+      <WaitingOnClient items={waiting} />
 
       <Group title="Past ETA" items={overdue} empty="Nothing is past its committed date." />
       <Group title="Within ETA" items={onTrack} empty="No blockers are still within their committed date." />

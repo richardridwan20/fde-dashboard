@@ -88,13 +88,62 @@ lib/report.ts     generates the weekly status in the FDE hub format
 - Readiness (PMS, channel manager, payment gateway) is manual until that lands.
 - Meetings hold a pasted Meet URL. Real calendar events need Google Calendar API access.
 - Every edit records `changed_by: anon` while the auth gate is off.
-- **The check-in funnel has no data.** `fde.checkin_step_daily` and `fde.checkin_failures` are
-  empty — the five steps (`booking_matched → guest_details → id_scan → payment_auth →
-  room_assigned`) are defined but nothing writes to them. Views `v_checkin_funnel`,
-  `v_checkin_failures` and `v_checkin_steps` exist and readers are wired in `lib/data.ts`, so the
-  UI can be built the day a source appears. Until then there is no check-in page, because an empty
-  one would imply the flow is healthy.
+- **The check-in funnel has no data yet.** `/checkin` exists and `POST /api/checkin/ingest` is the
+  writer, but `fde.checkin_step_daily` and `fde.checkin_failures` are still empty until the kiosk
+  bridge starts sending. The page renders an explicit "no events" state listing the five defined
+  steps rather than a zeroed funnel, because an empty funnel reads as a healthy one.
 - Reza's and Rido's start dates are guesses (2026-08-10). Correct them in `fde.team_members`.
+
+## Check-in ingest
+
+`/checkin` is only as good as what feeds it. The endpoint is off until both env vars are set in
+Vercel, and reports itself off rather than accepting unauthenticated writes:
+
+| Variable | Purpose |
+|---|---|
+| `CHECKIN_INGEST_TOKEN` | Shared secret. The bridge sends `Authorization: Bearer <token>`. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only write key. Never prefix this `NEXT_PUBLIC_`. |
+
+The check-in tables stay **anon-read-only** on purpose. The publishable key ships in the browser
+bundle, so if `anon` could write here anyone could forge the funnel — which is worse than having
+no funnel, because it would look authoritative.
+
+`GET /api/checkin/ingest` is a health probe returning `{ configured: true|false }`, so the bridge
+can tell "not deployed" from "not configured".
+
+```bash
+curl -X POST https://wasimil-fde-dashboard.vercel.app/api/checkin/ingest \
+  -H "Authorization: Bearer $CHECKIN_INGEST_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "steps": [{ "property_id": "<uuid>", "step_key": "id_scan", "day": "2026-08-10",
+                "entered_count": 40, "completed_count": 31, "failed_count": 9 }],
+    "failures": [{ "property_id": "<uuid>", "step_key": "id_scan",
+                   "occurred_at": "2026-08-10T09:12:00Z", "error_code": "OCR_TIMEOUT" }]
+  }'
+```
+
+Steps are a daily rollup keyed by `(property_id, step_key, day)` and upserted, so resending a day
+corrects it rather than double-counting — the bridge can retry safely. Failures are append-only.
+
+## Go-live gate
+
+`v_go_live_gate` turns the onboarding date from a countdown into a pass/fail. Three clauses, all
+of which must hold:
+
+1. every checklist item flagged `checklist_items.is_go_live_gate` is ticked;
+2. every device recorded against the property is `live`;
+3. no open `critical` or `high` blockers.
+
+Clause 2 counts **installed** devices, not `integration_types.is_required` — every type currently
+has `is_required = false`, which made that clause vacuously true for all 33 properties. A Glory
+cash machine on site and not working blocks go-live whether or not the type is universally
+required. Retune which checklist items gate by flipping `is_go_live_gate`; no deploy needed.
+
+`v_stage_check` flags properties whose evidence (checklist progress, devices underway, meetings
+held) outranks their recorded stage. It only ever nags **upward** — parking something at a later
+stage deliberately is legitimate and should not be second-guessed — and it prompts rather than
+auto-corrects, because a wrong automatic correction is harder to spot than a stale value.
 
 ## Weekly report — how it actually behaves
 

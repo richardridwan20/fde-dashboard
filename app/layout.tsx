@@ -13,6 +13,7 @@ export const metadata: Metadata = {
 const NAV = [
   ['/', 'Overview'],
   ['/blockers', 'Blockers'],
+  ['/checkin', 'Check-in'],
   ['/devices', 'Devices'],
   ['/meetings', 'Meetings'],
   ['/reports', 'Reports'],
@@ -33,7 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/" className="text-[13px] font-medium">
               Wasimil <span className="text-faint">FDE</span>
             </Link>
-            {/* Wraps rather than overflowing — nine links do not fit a phone. */}
+            {/* Wraps rather than overflowing — ten links do not fit a phone. */}
             <nav className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-sub">
               {NAV.slice(1).map(([href, label]) => (
                 <Link key={href} href={href} className="hover:text-ink hover:underline">

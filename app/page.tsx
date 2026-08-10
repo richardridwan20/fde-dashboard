@@ -1,21 +1,26 @@
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import {
-  getOverview, getGroups, getAllBlockers, getDrift, getReadiness, isActive, isPastDue
+  getOverview, getGroups, getAllBlockers, getDrift, getReadiness,
+  getGoLiveGate, getStaleStages, isActive, isPastDue
 } from '@/lib/data';
 import { Button, Card, CardHeader, Empty, Pill, TableWrap } from '@/components/ui';
 import { DriftBanner } from '@/components/clickup';
 import { LeadFold } from '@/components/lead-fold';
+import { GateTone, GoLiveWatch, StageDriftBanner, isWatched } from '@/components/go-live';
 import { Metric, Progress, StagePill, StatePill, ago, fmtDate } from '@/components/shared';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Overview() {
-  const [rows, groups, blockers, drift, readiness] = await Promise.all([
-    getOverview(), getGroups(), getAllBlockers(), getDrift(), getReadiness()
+  const [rows, groups, blockers, drift, readiness, gates, stale] = await Promise.all([
+    getOverview(), getGroups(), getAllBlockers(), getDrift(), getReadiness(),
+    getGoLiveGate(), getStaleStages()
   ]);
 
   const ready = new Map(readiness.map((r: any) => [r.property_id, r]));
+  const gateBy = new Map(gates.map((g: any) => [g.property_id, g]));
+  const atRisk = gates.filter((g: any) => isWatched(g) && !g.is_ready);
   const inFlight = rows.filter(isActive);
   const overdue = rows.filter(isPastDue);
   const live = rows.filter((r: any) => r.stage === 'done' || r.stage === 'onboarded');
@@ -43,7 +48,7 @@ export default async function Overview() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Metric label="In flight" value={inFlight.length} sub={`${rows.length} total`} />
         <Metric label="Live" value={live.length} sub="onboarded or done" />
         <Metric
@@ -59,10 +64,18 @@ export default async function Overview() {
           tone={overdue.length ? 'bad' : undefined}
           sub="still in flight"
         />
+        <Metric
+          label="Go-live at risk"
+          value={atRisk.length}
+          sub="dated within 30d"
+          tone={atRisk.length ? 'bad' : undefined}
+        />
         <Metric label="Devices blocked" value={blockedDevices} href="/devices" />
       </div>
 
+      <StageDriftBanner stale={stale} />
       <DriftBanner drift={drift} />
+      <GoLiveWatch gates={gates} />
 
       {bucketed.map(({ group, items }: any) => {
         // Leads sit behind a fold — they are prospects, not work in flight.
@@ -86,7 +99,7 @@ export default async function Overview() {
               </td>
               <td className="px-4 py-2.5">
                 <div>{fmtDate(r.onboarding_date)}</div>
-                {r.days_to_onboarding !== null && (
+                {r.days_to_onboarding !== null && r.stage !== 'done' && (
                   <div
                     className={
                       isPastDue(r) ? 'text-[11px] text-destructive' : 'text-[11px] text-faint'
@@ -95,6 +108,13 @@ export default async function Overview() {
                     {r.days_to_onboarding < 0
                       ? `${Math.abs(r.days_to_onboarding)}d over`
                       : `in ${r.days_to_onboarding}d`}
+                  </div>
+                )}
+                {/* Gate sits under the date rather than in its own column —
+                    the table is already seven wide and scrolls on a phone. */}
+                {isWatched(gateBy.get(r.id)) && (
+                  <div className="mt-1">
+                    <GateTone gate={gateBy.get(r.id)} />
                   </div>
                 )}
               </td>

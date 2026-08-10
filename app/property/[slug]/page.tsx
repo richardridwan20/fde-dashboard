@@ -4,7 +4,8 @@ import { ExternalLink } from 'lucide-react';
 import {
   getProperty, getPropertyBlockers, getPropertyIntegrations, getIntegrationTypes,
   getPropertyChecklist, getPropertyPhotos, getPropertyActivity, getPropertyTasks,
-  getPropertyDrift, getPropertyMeetings, getReadiness, getWorkstreams, STAGES
+  getPropertyDrift, getPropertyMeetings, getReadiness, getWorkstreams,
+  getPropertyGate, STAGES
 } from '@/lib/data';
 import { DEVICE_STATUSES } from '@/lib/enums';
 import { setDeviceStatus, removeDevice, setOnboardingDate, setStage } from '@/lib/actions';
@@ -15,6 +16,7 @@ import {
   ClickupRow, DeviceCard, MapEmbed, Metric, Progress, ago, fmtDate, fmtDateTime
 } from '@/components/shared';
 import { Checklist } from '@/components/checklist';
+import { GatePanel } from '@/components/go-live';
 import { Paginated } from '@/components/paginate';
 import { PhotoGrid } from '@/components/photo-grid';
 import { ReadinessPanel } from '@/components/readiness-panel';
@@ -33,7 +35,8 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
   if (!property) notFound();
 
   const [
-    blockers, devices, types, checklist, photos, activity, tasks, drift, meetings, readiness, workstreams
+    blockers, devices, types, checklist, photos, activity, tasks, drift, meetings, readiness,
+    workstreams, gate
   ] = await Promise.all([
     getPropertyBlockers(property.id),
     getPropertyIntegrations(property.id),
@@ -45,7 +48,8 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
     getPropertyDrift(slug),
     getPropertyMeetings(property.id),
     getReadiness(),
-    getWorkstreams()
+    getWorkstreams(),
+    getPropertyGate(property.id)
   ]);
 
   const rd: any = readiness.find((r: any) => r.property_id === property.id) || {};
@@ -107,6 +111,9 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
               : `in ${property.days_to_onboarding}d`
         } />
       </div>
+
+      {/* -------------------------------------------------------- go-live gate */}
+      <GatePanel gate={gate} />
 
       {/* --------------------------------------------------- client details */}
       <Card>

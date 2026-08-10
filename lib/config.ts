@@ -5,6 +5,17 @@ export const SUPABASE_KEY =
 
 export const ALLOWED_DOMAIN = 'wasimil.com';
 
+/**
+ * Check-in ingest. Both must be set for POST /api/checkin/ingest to accept
+ * anything; absent, the route reports itself disabled rather than silently
+ * accepting writes. The service key is deliberately NOT prefixed NEXT_PUBLIC —
+ * it must never reach the browser, and the check-in tables stay anon-read-only
+ * so the publishable key cannot be used to forge funnel data.
+ */
+export const CHECKIN_INGEST_TOKEN = process.env.CHECKIN_INGEST_TOKEN || '';
+export const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+export const CHECKIN_INGEST_READY = Boolean(CHECKIN_INGEST_TOKEN && SUPABASE_SERVICE_KEY);
+
 /** Auth gate. Off unless explicitly enabled, so the URL is public by default. */
 export const AUTH_ENABLED = process.env.NEXT_PUBLIC_AUTH_ENABLED === 'true';
 

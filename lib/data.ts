@@ -83,6 +83,18 @@ export const getCheckinFunnel = (sinceIso: string) =>
 export const getCheckinFailures = () =>
   q('v_checkin_failures', (b) => b.order('occurred_at', { ascending: false }).limit(50));
 
+// Go-live gate, stage drift, waiting-on-client
+export const getGoLiveGate = () => q('v_go_live_gate', (b) => b.order('days_to_go_live'));
+export const getPropertyGate = (id: string) =>
+  q('v_go_live_gate', (b) => b.eq('property_id', id)).then((r: any[]) => r[0] || null);
+/** Only properties whose evidence outranks their recorded stage. */
+export const getStaleStages = () => q('v_stage_check', (b) => b.eq('is_stale', true).order('name'));
+/** Longest wait first — the whole point is spotting what has gone quiet. */
+export const getWaitingOnClient = () =>
+  q('v_blockers', (b) =>
+    b.eq('state', 'blocked_on_client').order('waiting_days', { ascending: false })
+  );
+
 // Reference and housekeeping
 export const getWorkstreams = () => q('v_workstreams', (b) => b.order('display_order'));
 export const getTeam = () => q('v_team', (b) => b.order('role'));
