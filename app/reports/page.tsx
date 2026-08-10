@@ -2,7 +2,7 @@ import Link from 'next/link';
 import {
   getOverview, getBlockersForReport, getPropertyTasks, getPropertyMeetings, getWeeklyNarrative
 } from '@/lib/data';
-import { buildReport, isoDate, mondayOf, weekLabel } from '@/lib/report';
+import { buildReport, isoDate, mondayOf, weekLabel, weekStartFrom } from '@/lib/report';
 import { Card, CardHeader, Empty } from '@/components/ui';
 import { ReportPanel } from '@/components/report-panel';
 import { cn } from '@/lib/utils';
@@ -29,7 +29,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
     );
   }
 
-  const weekStart = sp?.week ? mondayOf(new Date(sp.week)) : mondayOf();
+  const weekStart = weekStartFrom(sp?.week);
   const weekIso = isoDate(weekStart);
 
   const [blockers, tasks, meetings, narrative] = await Promise.all([

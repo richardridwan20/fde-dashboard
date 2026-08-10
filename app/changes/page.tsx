@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { getRecentChanges, getAudit } from '@/lib/data';
+import { getRecentChanges, getAudit, CHANGES_LIMIT, AUDIT_LIMIT } from '@/lib/data';
 import { Card, CardHeader, Empty, Pill } from '@/components/ui';
+import { plural } from '@/lib/ui-helpers';
 import { ago, fmtDateTime } from '@/components/shared';
 
 export const dynamic = 'force-dynamic';
@@ -8,7 +9,15 @@ export const dynamic = 'force-dynamic';
 /** One feed of everything that moved, so the Monday question "what changed?"
  *  has an answer that is not a Slack scroll. */
 export default async function Changes() {
-  const [changes, audit] = await Promise.all([getRecentChanges(), getAudit()]);
+  const [rawChanges, rawAudit] = await Promise.all([getRecentChanges(), getAudit()]);
+
+  // The feeds are capped. Printing the cap as if it were a total made the
+  // oldest day on screen claim "59 events" when the real figure was higher —
+  // worse than showing nothing, because it looks authoritative.
+  const changesTruncated = rawChanges.length > CHANGES_LIMIT;
+  const changes = rawChanges.slice(0, CHANGES_LIMIT);
+  const auditTruncated = rawAudit.length > AUDIT_LIMIT;
+  const audit = rawAudit.slice(0, AUDIT_LIMIT);
 
   const byDay: Record<string, any[]> = {};
   changes.forEach((c: any) => {
@@ -16,20 +25,29 @@ export default async function Changes() {
     (byDay[day] = byDay[day] || []).push(c);
   });
 
+  // Newest first, so only the last group can be a partial day.
+  const days = Object.entries(byDay);
+
   return (
     <main className="space-y-6">
       <div>
         <h1 className="text-lg font-medium">Changes</h1>
-        <p className="text-[12px] text-faint">Everything recorded across every property, newest first.</p>
+        <p className="text-[12px] text-faint">
+          {changesTruncated
+            ? `The last ${CHANGES_LIMIT} changes across every property, newest first.`
+            : 'Everything recorded across every property, newest first.'}
+        </p>
       </div>
 
-      {Object.entries(byDay).map(([day, items]) => (
+      {days.map(([day, items], i) => {
+        const partial = changesTruncated && i === days.length - 1;
+        return (
         <Card key={day}>
           <CardHeader
             title={new Date(day).toLocaleDateString('en-GB', {
               weekday: 'long', day: '2-digit', month: 'long'
             })}
-            sub={`${items.length} event${items.length > 1 ? 's' : ''}`}
+            sub={partial ? `${items.length}+ events` : plural(items.length, 'event')}
           />
           <ul className="divide-y divide-line">
             {items.map((c: any) => (
@@ -53,7 +71,8 @@ export default async function Changes() {
             ))}
           </ul>
         </Card>
-      ))}
+        );
+      })}
 
       {!changes.length && (
         <Card>
@@ -64,7 +83,8 @@ export default async function Changes() {
       {audit.length > 0 && (
         <details>
           <summary className="cursor-pointer list-none text-[12px] text-sub underline decoration-dotted">
-            Raw audit trail ({audit.length})
+            Raw audit trail ({audit.length}
+            {auditTruncated ? '+' : ''})
           </summary>
           <Card className="mt-3">
             <ul className="divide-y divide-line text-[12px]">

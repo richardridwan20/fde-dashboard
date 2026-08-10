@@ -6,6 +6,7 @@ import { Trash2 } from 'lucide-react';
 import { deletePhotos, updatePhoto } from '@/lib/actions';
 import { Button, Checkbox, Empty, Pill, toast } from '@/components/ui';
 import { QuickText } from '@/components/quick-edit';
+import { plural } from '@/lib/ui-helpers';
 import { cn } from '@/lib/utils';
 
 /**
@@ -48,7 +49,7 @@ export function PhotoGrid({
     <div className="p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="text-[12px] text-faint">
-          {selected.size ? `${selected.size} selected` : `${photos.length} photo${photos.length > 1 ? 's' : ''}`}
+          {selected.size ? `${selected.size} selected` : plural(photos.length, 'photo')}
         </div>
         <div className="flex items-center gap-2">
           {selected.size > 0 && (

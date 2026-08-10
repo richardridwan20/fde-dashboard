@@ -9,7 +9,7 @@ import {
 import { DEVICE_STATUSES } from '@/lib/enums';
 import { setDeviceStatus, removeDevice, setOnboardingDate, setStage } from '@/lib/actions';
 import { Button, Card, CardHeader, Empty, Pill } from '@/components/ui';
-import { enumOptions } from '@/lib/ui-helpers';
+import { enumOptions, plural } from '@/lib/ui-helpers';
 import { QuickDate, QuickSelect, ConfirmButton } from '@/components/quick-edit';
 import {
   ClickupRow, DeviceCard, MapEmbed, Metric, Progress, ago, fmtDate, fmtDateTime
@@ -253,7 +253,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
 
         {/* -------------------------------------------------------- clickup */}
         <Card>
-          <CardHeader title="ClickUp" sub={`${tasks.length} linked tasks`} />
+          <CardHeader title="ClickUp" sub={plural(tasks.length, 'linked task')} />
           <div className="max-h-80 divide-y divide-line overflow-y-auto">
             {tasks.slice(0, 20).map((t: any) => (
               <ClickupRow key={t.id} t={t} />
@@ -265,9 +265,9 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
 
       {/* ---------------------------------------------------------- photos */}
       <Card>
+        {/* No count here — PhotoGrid's own toolbar already prints it. */}
         <CardHeader
           title="Photos"
-          sub={`${photos.length} uploaded`}
           right={<PhotoUpload propertyId={property.id} devices={devices} meetings={meetings} />}
         />
         <PhotoGrid photos={photos} />
@@ -275,7 +275,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
 
       {/* -------------------------------------------------------- activity */}
       <Card>
-        <CardHeader title="Recent activity" sub={`${activity.length} events`} />
+        <CardHeader title="Recent activity" sub={plural(activity.length, 'event')} />
         <Paginated
           noun="events"
           empty="Nothing recorded yet."

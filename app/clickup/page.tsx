@@ -2,6 +2,7 @@ import { getClickupTasks, getDrift, getSyncExceptions } from '@/lib/data';
 import { Card, CardHeader, Empty, Pill } from '@/components/ui';
 import { DriftBanner } from '@/components/clickup';
 import { ClickupRow, Metric, ago } from '@/components/shared';
+import { plural } from '@/lib/ui-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +39,7 @@ export default async function Clickup() {
 
       {Object.entries(byState).map(([state, items]) => (
         <Card key={state}>
-          <CardHeader title={state.replace(/_/g, ' ')} sub={`${items.length} tasks`} />
+          <CardHeader title={state.replace(/_/g, ' ')} sub={plural(items.length, 'task')} />
           <div className="divide-y divide-line">
             {items.map((t: any) => (
               <ClickupRow key={t.id} t={t} />

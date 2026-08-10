@@ -47,8 +47,14 @@ export const getMeetingPhotos = (meetingId: string) =>
   q('v_photos', (b) => b.eq('meeting_id', meetingId).order('created_at'));
 export const getPropertyActivity = (id: string) =>
   q('v_activity', (b) => b.eq('property_id', id).order('occurred_at', { ascending: false }).limit(100));
+// Both feeds fetch one row past the cap so the page can tell "this is all of
+// it" from "this is the first 60 of an unknown number" and label itself
+// honestly. Callers should slice back to the LIMIT before rendering.
+export const CHANGES_LIMIT = 60;
+export const AUDIT_LIMIT = 50;
+
 export const getRecentChanges = () =>
-  q('v_recent_changes', (b) => b.order('occurred_at', { ascending: false }).limit(60));
+  q('v_recent_changes', (b) => b.order('occurred_at', { ascending: false }).limit(CHANGES_LIMIT + 1));
 
 // Meetings
 export const getAllMeetings = () => q('v_meetings', (b) => b.order('starts_at', { ascending: false }));
@@ -81,7 +87,8 @@ export const getCheckinFailures = () =>
 export const getWorkstreams = () => q('v_workstreams', (b) => b.order('display_order'));
 export const getTeam = () => q('v_team', (b) => b.order('role'));
 export const getSyncExceptions = () => q('v_sync_exceptions', (b) => b.order('seen_at', { ascending: false }));
-export const getAudit = () => q('v_audit', (b) => b.order('changed_at', { ascending: false }).limit(50));
+export const getAudit = () =>
+  q('v_audit', (b) => b.order('changed_at', { ascending: false }).limit(AUDIT_LIMIT + 1));
 
 export async function getProperty(slug: string) {
   const supabase = await getSupabase();

@@ -13,6 +13,18 @@ export function mondayOf(d: Date = new Date()) {
   return x;
 }
 
+/**
+ * `?week=` comes off the URL, so it can be anything. `new Date('nonsense')`
+ * is an Invalid Date that survives mondayOf() — every arithmetic op on it is a
+ * silent NaN — and only throws several lines later inside isoDate():
+ * "RangeError: Invalid time value". Fall back to the current week instead.
+ */
+export function weekStartFrom(value?: string | null) {
+  if (!value) return mondayOf();
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? mondayOf() : mondayOf(parsed);
+}
+
 export function isoDate(d: Date) {
   return d.toISOString().slice(0, 10);
 }

@@ -10,6 +10,14 @@
 // Rendering a client *component* from the server is fine. Calling a client
 // *function* from the server is not. Keep plain functions here.
 
+/**
+ * "1 task" / "0 tasks" / "5 tasks". Every ad-hoc `n > 1 ? 's' : ''` in this app
+ * got the zero case wrong ("0 photo") and every bare `${n} tasks` got the one
+ * case wrong ("1 tasks"), so counts go through here.
+ */
+export const plural = (n: number, one: string, many = `${one}s`) =>
+  `${n} ${n === 1 ? one : many}`;
+
 /** 'blocked_on_client' → 'Blocked on client' */
 export const humanise = (s: string) => {
   const t = s.replace(/_/g, ' ');

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
+import { plural } from '@/lib/ui-helpers';
 
 /**
  * Drift is a blocker whose linked ClickUp task disagrees with it — done in
@@ -12,7 +13,7 @@ export function DriftBanner({ drift }: { drift: any[] }) {
     <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
       <div className="flex items-center gap-2 text-[13px] font-medium text-amber-900">
         <AlertTriangle className="h-4 w-4" />
-        {drift.length} blocker{drift.length > 1 ? 's' : ''} disagree with ClickUp
+        {plural(drift.length, 'blocker')} disagree{drift.length === 1 ? 's' : ''} with ClickUp
       </div>
       <ul className="mt-1.5 space-y-1 text-[12px] text-amber-800">
         {drift.slice(0, 6).map((d) => (
