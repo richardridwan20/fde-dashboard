@@ -81,6 +81,25 @@ lib/report.ts     generates the weekly status in the FDE hub format
   page is force-dynamic and nothing renders during the build. Shared helpers live in
   `lib/ui-helpers.ts`. `npm run check` enforces it and runs automatically before `npm run build`.
 
+## Latency and loading
+
+Functions are pinned to `sin1` in `vercel.json`. The Vercel default is `iad1`
+(Washington), while the Supabase project is `ap-southeast-1` (Singapore) — so every
+query crossed the Pacific twice, on top of the user-to-function hop from Japan. Keep the
+function region next to the database; if the Supabase project ever moves, move this too.
+
+Every route has a `loading.tsx`. Two reasons, and the second is the less obvious one:
+
+1. App Router navigation blocks by default. Without a boundary, a nav click renders
+   nothing until the full RSC payload lands, and since it is a client-side transition the
+   browser shows no spinner either — it reads as lag.
+2. For a `force-dynamic` route Next prefetches only as far as the first loading boundary.
+   With no boundary there is nothing to prefetch, so hovering a link did no useful work.
+
+Skeletons live in `components/skeleton.tsx` and mirror each page's real shape (metric
+count, column count) so nothing jumps on arrival. Routes whose heading is data-driven —
+`/property/[slug]` — omit the title so it does not flash the wrong text.
+
 ## Known gaps
 
 - ClickUp is a one-off load, not a live sync. Statuses are frozen at the last pull.
