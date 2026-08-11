@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Check, Copy } from 'lucide-react';
-import { Button, Card, CardHeader, Empty, toast } from '@/components/ui';
+import { Button, Card, CardHeader, toast } from '@/components/ui';
 import { buildBlocks, renderHtml, renderMrkdwn, type Person } from '@/lib/mom';
 
 const WORKSPACE = 'washimo.slack.com';
@@ -64,13 +64,13 @@ export function MomPanel({
     people
   };
 
-  const { text, html, empty, unknownAttendees } = React.useMemo(() => {
+  const { text, html, empty, unlinked } = React.useMemo(() => {
     const r = buildBlocks(input);
     return {
       text: renderMrkdwn(r.blocks, WORKSPACE),
       html: renderHtml(r.blocks, WORKSPACE),
       empty: r.empty,
-      unknownAttendees: r.unknownAttendees
+      unlinked: r.unlinked
     };
   }, [meeting, people, ccKeys]);
 
@@ -136,13 +136,13 @@ export function MomPanel({
         }
       />
       <div className="p-4">
-        {unknownAttendees.length > 0 && (
+        {unlinked.length > 0 && (
           <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
-            Not in the people list, so {unknownAttendees.length === 1 ? 'this name' : 'these names'}{' '}
-            will paste as plain text rather than a mention:{' '}
-            <span className="font-medium">{unknownAttendees.join(', ')}</span>. Add them to{' '}
-            <code className="text-[11px]">fde.slack_people</code> with their Slack ID to fix it
-            for every future meeting.
+            No Slack ID on file, so {unlinked.length === 1 ? 'this name pastes' : 'these names paste'}{' '}
+            as plain text rather than a mention:{' '}
+            <span className="font-medium">{unlinked.join(', ')}</span>. Fill in{' '}
+            <code className="text-[11px]">fde.slack_people.slack_user_id</code> and every future
+            meeting picks it up.
           </div>
         )}
         <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded-lg border border-line bg-card p-4 font-mono text-[12px] leading-relaxed">
