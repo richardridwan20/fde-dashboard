@@ -213,8 +213,14 @@ export function parseNotes(md: string): Section[] {
       out.push(cur);
       continue;
     }
-    if (!cur) continue;
     if (IMAGE_LINE.test(line.trim())) continue; // images cannot survive a paste
+    if (!cur) {
+      // Content above the first heading is still content. Dropping it was the
+      // same silent loss as the prose bug, just at the top of the document.
+      if (!line.trim()) continue;
+      cur = { heading: '', presenter: null, chunks: [], raw: [] };
+      out.push(cur);
+    }
     cur.raw.push(line);
 
     const b = !fence && line.match(BULLET);
@@ -312,8 +318,10 @@ export function buildBlocks(input: MomInput): MomResult {
       const lead: Line = p
         ? [{ k: 'm', p }, { k: 't', v: ` shares topic for ${title}` }]
         : s.presenter
-          // Attribution you wrote but we could not resolve stays visible.
-          ? [{ k: 'raw', v: `@${s.presenter}` }, { k: 't', v: ` shares topic for ${title}` }]
+          // Attribution you wrote but we could not resolve stays visible, and
+          // gets flagged like any other name that pastes as plain text.
+          ? (flag(s.presenter),
+            [{ k: 'raw', v: `@${s.presenter}` }, { k: 't', v: ` shares topic for ${title}` }])
           : txt(`Topics covered in ${title}`);
       items.push({ line: lead, depth: 0 });
       // Prose is content too — dropping it was the same silent loss the
@@ -321,8 +329,10 @@ export function buildBlocks(input: MomInput): MomResult {
       for (const c of s.chunks) items.push({ line: txt(c.text), depth: c.depth + 1 });
     }
     for (const s of other) {
-      items.push({ line: txt(s.heading), depth: 0 });
-      for (const c of s.chunks) items.push({ line: txt(c.text), depth: c.depth + 1 });
+      // The implicit pre-heading section has no title to lead with.
+      const lead = s.heading ? 1 : 0;
+      if (lead) items.push({ line: txt(s.heading), depth: 0 });
+      for (const c of s.chunks) items.push({ line: txt(c.text), depth: c.depth + lead });
     }
     if (items.length) {
       blocks.push({ t: 'para', line: txt('MoM:'), strong: true });
@@ -338,7 +348,9 @@ export function buildBlocks(input: MomInput): MomResult {
     while (kept.length && !kept[0].trim()) kept.shift();
     while (kept.length && !kept[kept.length - 1].trim()) kept.pop();
     const lines = kept;
-    if (!lines.length) continue;
+    // Bare fence markers are not content — they would render a Feedbacks
+    // heading over an empty code block and make `empty` report false.
+    if (!lines.some((l) => l.trim() && !FENCE.test(l))) continue;
     blocks.push({ t: 'para', line: txt(`${s.heading} from my notes:`), strong: true });
     blocks.push({ t: 'code', lines });
     body++;

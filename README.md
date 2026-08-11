@@ -178,6 +178,12 @@ the same notes would not know them either — it would guess. Measured against a
 the generator produces roughly the right draft and the editing left over is the MoM
 attribution and trimming the action items.
 
+`&`, `<` and `>` are deliberately **not** escaped in the plain flavour. Slack only parses
+`<…>` as link syntax for messages sent through the API; text pasted into the composer is
+literal and Slack escapes it on send, so escaping here would make `a < b` paste as
+`a &lt; b`. **If minutes ever get posted through the API rather than the clipboard, escape
+at that send boundary — not in `toMrkdwn`, or paste breaks.**
+
 Two clipboard flavours, because Slack does **not** convert a pasted `<@U123>` into a mention
 — that only happens for messages sent through the API. "Copy for Slack" writes `text/html`
 with real anchors to `/team/<id>`, which Slack keeps on paste; "Copy raw" is the plain
