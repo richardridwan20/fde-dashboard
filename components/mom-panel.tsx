@@ -3,7 +3,35 @@
 import * as React from 'react';
 import { Check, Copy } from 'lucide-react';
 import { Button, Card, CardHeader, Empty, toast } from '@/components/ui';
-import { buildMom, buildMomHtml, type Person } from '@/lib/mom';
+import { buildBlocks, renderHtml, renderMrkdwn, type Person } from '@/lib/mom';
+
+const WORKSPACE = 'washimo.slack.com';
+
+/** The headings the generator reads, spelled out where you can act on them. */
+function Contract() {
+  return (
+    <ul className="ml-4 list-disc space-y-1 text-[12px] text-sub">
+      <li>
+        <code className="text-[11px]">## Topics (@Name)</code> — becomes “@Name shares topic
+        for …” with the bullets nested under it. The name is optional.
+      </li>
+      <li>
+        <code className="text-[11px]">## Feedbacks</code> — reproduced word for word in a code
+        block, so arrows and <code className="text-[11px]">**bold**</code> survive intact.
+      </li>
+      <li>
+        <code className="text-[11px]">## Action Items</code> — a leading name resolves to a
+        mention: <code className="text-[11px]">@Nursandy</code>,{' '}
+        <code className="text-[11px]">Nursandy</code> or{' '}
+        <code className="text-[11px]">Ikegami-san</code> all work.
+      </li>
+      <li>
+        <code className="text-[11px]">## Photos</code> — dropped, since images cannot survive a
+        paste. Any other heading is carried through.
+      </li>
+    </ul>
+  );
+}
 
 /**
  * The minutes post, assembled from the notes. Copy only — no posting. You add
@@ -36,8 +64,15 @@ export function MomPanel({
     people
   };
 
-  const text = React.useMemo(() => buildMom(input), [meeting, people, ccKeys]);
-  const html = React.useMemo(() => buildMomHtml(input), [meeting, people, ccKeys]);
+  const { text, html, empty, unknownAttendees } = React.useMemo(() => {
+    const r = buildBlocks(input);
+    return {
+      text: renderMrkdwn(r.blocks, WORKSPACE),
+      html: renderHtml(r.blocks, WORKSPACE),
+      empty: r.empty,
+      unknownAttendees: r.unknownAttendees
+    };
+  }, [meeting, people, ccKeys]);
 
   async function copy(flavour: 'rich' | 'plain') {
     try {
@@ -60,16 +95,24 @@ export function MomPanel({
     }
   }
 
-  if (!meeting.notes_md?.trim()) {
+  // Gate on whether anything was actually assembled, not on whether notes
+  // exist — notes that are all photos, or all prose under an unread heading,
+  // would otherwise render a card claiming to have assembled nothing.
+  if (empty) {
     return (
       <Card>
-        <CardHeader title="Minutes draft" />
-        <Empty>
-          Write the notes first. Use <code className="text-[11px]">## Topics</code>,{' '}
-          <code className="text-[11px]">## Feedbacks</code> and{' '}
-          <code className="text-[11px]">## Action Items</code> headings and this assembles the
-          Slack post from them.
-        </Empty>
+        <CardHeader
+          title="Minutes draft"
+          sub={meeting.notes_md?.trim() ? 'Nothing to assemble from these notes yet' : undefined}
+        />
+        <div className="space-y-2 px-4 py-4">
+          <p className="text-[13px] text-sub">
+            {meeting.notes_md?.trim()
+              ? 'The notes have no section this reads. Use these headings and it assembles the post:'
+              : 'Write the notes first. These headings become the Slack post:'}
+          </p>
+          <Contract />
+        </div>
       </Card>
     );
   }
@@ -83,22 +126,33 @@ export function MomPanel({
           <div className="flex flex-wrap items-center gap-2">
             <Button size="xs" onClick={() => copy('rich')}>
               {copied === 'rich' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              {copied === 'rich' ? 'Copied' : 'Copy for Slack'}
+              {copied === 'rich' ? 'Copied' : 'Copy with mentions'}
             </Button>
             <Button size="xs" variant="outline" onClick={() => copy('plain')}>
               {copied === 'plain' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              {copied === 'plain' ? 'Copied' : 'Copy raw'}
+              {copied === 'plain' ? 'Copied' : 'Copy plain text'}
             </Button>
           </div>
         }
       />
       <div className="p-4">
+        {unknownAttendees.length > 0 && (
+          <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
+            Not in the people list, so {unknownAttendees.length === 1 ? 'this name' : 'these names'}{' '}
+            will paste as plain text rather than a mention:{' '}
+            <span className="font-medium">{unknownAttendees.join(', ')}</span>. Add them to{' '}
+            <code className="text-[11px]">fde.slack_people</code> with their Slack ID to fix it
+            for every future meeting.
+          </div>
+        )}
         <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded-lg border border-line bg-card p-4 font-mono text-[12px] leading-relaxed">
           {text}
         </pre>
         <p className="mt-2 text-[11px] text-faint">
-          Attribution and any already-done action items are yours to add and cut — the notes
-          do not record who presented, or which items landed before the meeting.
+          Add <code className="text-[10px]">(@Name)</code> to a{' '}
+          <code className="text-[10px]">## Topics</code> heading to attribute it. Trimming
+          already-done action items is yours — the notes do not record which landed before the
+          meeting.
         </p>
       </div>
     </Card>
