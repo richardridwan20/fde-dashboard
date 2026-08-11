@@ -10,10 +10,11 @@ export function MeetingNotes({ meeting, photos }: { meeting: any; photos: any[] 
       photos={photos}
       label={`Notes — ${meeting.title}`}
       onSave={(md) => saveMeetingNotes(meeting.id, md)}
+      // These headings are the contract the minutes generator parses. Topics
+      // takes an optional "(@Name)" presenter, which is the one thing the notes
+      // cannot otherwise record and the generator cannot guess.
       placeholder={
-        meeting.agenda
-          ? `## Agenda\n${meeting.agenda}\n\n## Notes\n`
-          : '## What we covered\n\n## Decisions\n\n## Follow-ups\n'
+        '## Topics (@Name)\n- \n\n## Feedbacks\n- \n\n## Action Items\n- @Name will \n\n## Photos\n'
       }
     />
   );

@@ -95,6 +95,13 @@ export const getWaitingOnClient = () =>
     b.eq('state', 'blocked_on_client').order('waiting_days', { ascending: false })
   );
 
+// Minutes generation
+export const getSlackPeople = () => q('v_slack_people', (b) => b.order('display_name'));
+export const getMomCc = (propertyId: string) =>
+  q('v_mom_cc', (b) => b.eq('property_id', propertyId)).then(
+    (r: any[]) => (r[0]?.cc_keys as string[]) || []
+  );
+
 // Reference and housekeeping
 export const getWorkstreams = () => q('v_workstreams', (b) => b.order('display_order'));
 export const getTeam = () => q('v_team', (b) => b.order('role'));

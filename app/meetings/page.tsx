@@ -1,15 +1,16 @@
 import Link from 'next/link';
 import { ExternalLink, Video } from 'lucide-react';
 import {
-  getAllMeetings, getOverview, getWorkstreams, getMeetingPhotos
+  getAllMeetings, getOverview, getWorkstreams, getMeetingPhotos, getSlackPeople, getMomCc
 } from '@/lib/data';
 import { MEETING_STATES } from '@/lib/enums';
 import { deleteMeeting, setMeetingState } from '@/lib/actions';
 import { Button, Card, CardHeader, Empty, Pill } from '@/components/ui';
-import { enumOptions, stateTone } from '@/lib/ui-helpers';
+import { enumOptions, plural, stateTone } from '@/lib/ui-helpers';
 import { ConfirmButton, QuickSelect } from '@/components/quick-edit';
 import { Metric, fmtDateTime } from '@/components/shared';
 import { MeetingNotes } from '@/components/meeting-notes';
+import { MomPanel } from '@/components/mom-panel';
 import { MeetingDialog } from '@/components/forms/meeting-dialog';
 import { PhotoUpload } from '@/components/forms/photo-upload';
 import { cn } from '@/lib/utils';
@@ -18,12 +19,14 @@ export const dynamic = 'force-dynamic';
 
 export default async function Meetings({ searchParams }: { searchParams: Promise<any> }) {
   const sp = await searchParams;
-  const [meetings, clients, workstreams] = await Promise.all([
-    getAllMeetings(), getOverview(), getWorkstreams()
+  const [meetings, clients, workstreams, people] = await Promise.all([
+    getAllMeetings(), getOverview(), getWorkstreams(), getSlackPeople()
   ]);
 
   const selected = meetings.find((m: any) => m.id === sp?.id) || meetings[0];
-  const photos = selected ? await getMeetingPhotos(selected.id) : [];
+  const [photos, ccKeys] = selected
+    ? await Promise.all([getMeetingPhotos(selected.id), getMomCc(selected.property_id)])
+    : [[], []];
 
   const now = Date.now();
   const upcoming = meetings.filter(
@@ -171,9 +174,11 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
 
               <MeetingNotes meeting={selected} photos={photos} />
 
+              <MomPanel meeting={selected} people={people} ccKeys={ccKeys} />
+
               <div className="flex items-center justify-between border-t border-line pt-3">
                 <span className="text-[11px] text-faint">
-                  {photos.length} photo{photos.length === 1 ? '' : 's'} attached to this meeting
+                  {plural(photos.length, 'photo')} attached to this meeting
                 </span>
                 <PhotoUpload
                   propertyId={selected.property_id}

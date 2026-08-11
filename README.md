@@ -152,6 +152,37 @@ from (select table_name from information_schema.tables
        where table_schema = 'public' and table_type = 'VIEW' and table_name not like 'v\_%') w;
 ```
 
+## Minutes generator
+
+`lib/mom.ts` turns meeting notes into the Slack minutes post. No model involved, and
+deliberately so — the bullets are already your sentences, so this is templating rather
+than summarisation, and a paraphrase in a message going to a client is a liability.
+
+The notes headings are the contract:
+
+| Heading | Becomes |
+|---|---|
+| `## Topics (@Name)` | a MoM bullet "@Name shares topic for {meeting title}" with the topics nested under it. The presenter is optional; without it the lead reads "Topics covered in …". |
+| `## Feedbacks` | "Feedbacks from my notes:" and the bullets **verbatim** inside a fence, so `**bold**` and arrows survive unconverted |
+| `## Action Items` | the Action Items list. A leading name — `@Nursandy`, `Nursandy`, or `Ikegami-san` — resolves to a mention; anything unrecognised is left alone rather than guessed at |
+| `## Photos` | dropped — images cannot survive a clipboard paste |
+| anything else | carried through as its own bullet group, because silently losing a section you wrote is worse than having to delete one |
+
+Attendees produce the thank-you line; the cc line comes from `v_mom_cc` (property `mom_cc`,
+falling back to its group's). People and their Slack IDs live in `fde.slack_people` —
+`honorific` is per-person, not a rule: Ikegami-san takes one, Tom does not.
+
+**What it will not do:** invent attribution the notes do not contain, decide an action item
+was already handled and drop it, or sharpen wording. Those are judgement, and a model given
+the same notes would not know them either — it would guess. Measured against a real post,
+the generator produces roughly the right draft and the editing left over is the MoM
+attribution and trimming the action items.
+
+Two clipboard flavours, because Slack does **not** convert a pasted `<@U123>` into a mention
+— that only happens for messages sent through the API. "Copy for Slack" writes `text/html`
+with real anchors to `/team/<id>`, which Slack keeps on paste; "Copy raw" is the plain
+fallback.
+
 ## Known gaps
 
 - ClickUp is a one-off load, not a live sync. Statuses are frozen at the last pull.
