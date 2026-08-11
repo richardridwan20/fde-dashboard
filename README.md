@@ -110,11 +110,47 @@ Skeletons live in `components/skeleton.tsx` and mirror each page's real shape (m
 count, column count) so little jumps on arrival. Routes whose heading is data-driven —
 `/property/[slug]` — omit the title so it does not flash the wrong text.
 
+One accepted cost: `/property/<unknown-slug>` now returns **200** rather than 404. The
+Suspense shell flushes before `notFound()` throws, so the status is already committed;
+the not-found UI still renders via the streamed swap. Inherent to streaming, not worth
+losing the skeleton on the slowest page in the app. `/nonsense` still 404s properly,
+because the router resolves that one before any render.
+
+`/login` deliberately has **no** `loading.tsx` — it does no async work, so a boundary buys
+nothing and only risks flashing a heading that contradicts the page.
+
 Two rules when adding one. Never promise a row the page might not render: `/checkin` and
 `/photos` originally drew a 4-card metric row that does not exist, and a skeleton that
 shrinks reads as content being taken away. And where an exact count is not knowable —
 `/changes` day groups, `/` group tables — **under**-shoot, because growing downward reads
 as arrival while shrinking reads as loss.
+
+## Writable views drift from their base tables
+
+`public.meetings`, `public.blockers`, `public.properties` and friends are **views** over
+`fde.*`, and they are what PostgREST writes through. A view's column list is frozen when
+it is created, so `alter table fde.x add column y` does **not** appear in `public.x`.
+
+PostgREST reports the gap as *"Could not find the 'workstream' column of 'meetings' in
+the schema cache"*, which reads like a stale cache and is not one — the column genuinely
+is not in the view, and `notify pgrst, 'reload schema'` will not help. Saving a meeting
+failed outright for this reason; `properties` had drifted by fourteen columns.
+
+**Whenever you add a column to an `fde.*` table that the app writes to, recreate the
+matching `public.*` view in the same migration.** Append new columns at the end so
+`create or replace` stays legal, and keep `with (security_invoker = true)` or RLS stops
+applying to the caller. This query lists any drift:
+
+```sql
+select w.table_name,
+       (select string_agg(c.column_name, ', ')
+          from information_schema.columns c
+         where c.table_schema = 'fde' and c.table_name = w.table_name
+           and c.column_name not in (select column_name from information_schema.columns
+                                      where table_schema = 'public' and table_name = w.table_name)) as missing
+from (select table_name from information_schema.tables
+       where table_schema = 'public' and table_type = 'VIEW' and table_name not like 'v\_%') w;
+```
 
 ## Known gaps
 

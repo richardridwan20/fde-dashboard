@@ -2,7 +2,11 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { SUPABASE_URL, SUPABASE_KEY, AUTH_ENABLED } from '@/lib/config';
 
-const PUBLIC = ['/login', '/auth'];
+// /api carries its own bearer-token auth and is called by machines that have no
+// session cookie, so the session gate must not touch it. Without this, turning
+// AUTH_ENABLED on would 302 the kiosk bridge's ingest POST to /login and its
+// token check would never run.
+const PUBLIC = ['/login', '/auth', '/api'];
 
 /**
  * Refreshes the Supabase session cookie on every request. The gate itself is
