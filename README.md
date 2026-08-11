@@ -88,6 +88,16 @@ Functions are pinned to `sin1` in `vercel.json`. The Vercel default is `iad1`
 query crossed the Pacific twice, on top of the user-to-function hop from Japan. Keep the
 function region next to the database; if the Supabase project ever moves, move this too.
 
+`middleware.ts` short-circuits while `AUTH_ENABLED` is false. It runs at the edge in the
+user's own region, so the `sin1` pin does **not** move it — and its `getUser()` call was a
+cross-region round trip on nearly every request, refreshing a session that cannot exist
+while the gate is off.
+
+The portfolio lives in the `app/(portfolio)/` route group rather than at `app/`. A
+`loading.tsx` sitting next to `app/layout.tsx` wraps **every** nested segment, so `/devices`
+was served a "Portfolio" heading and a 6-metric skeleton before swapping to its own. The
+route group scopes that boundary to `/`.
+
 Every route has a `loading.tsx`. Two reasons, and the second is the less obvious one:
 
 1. App Router navigation blocks by default. Without a boundary, a nav click renders
@@ -97,8 +107,14 @@ Every route has a `loading.tsx`. Two reasons, and the second is the less obvious
    With no boundary there is nothing to prefetch, so hovering a link did no useful work.
 
 Skeletons live in `components/skeleton.tsx` and mirror each page's real shape (metric
-count, column count) so nothing jumps on arrival. Routes whose heading is data-driven —
+count, column count) so little jumps on arrival. Routes whose heading is data-driven —
 `/property/[slug]` — omit the title so it does not flash the wrong text.
+
+Two rules when adding one. Never promise a row the page might not render: `/checkin` and
+`/photos` originally drew a 4-card metric row that does not exist, and a skeleton that
+shrinks reads as content being taken away. And where an exact count is not knowable —
+`/changes` day groups, `/` group tables — **under**-shoot, because growing downward reads
+as arrival while shrinking reads as loss.
 
 ## Known gaps
 

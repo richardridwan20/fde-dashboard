@@ -1,5 +1,5 @@
 import { PageSkeleton } from '@/components/skeleton';
 
 export default function Loading() {
-  return <PageSkeleton title="Devices" metrics={4} lists={4} rows={2} />;
+  return <PageSkeleton title="Sign in" narrow lists={1} rows={2} />;
 }

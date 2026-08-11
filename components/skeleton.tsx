@@ -16,8 +16,10 @@
 import { Card, CardHeader } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
+/** A span, not a div: these land inside CardHeader's <h2>, which takes phrasing
+ *  content only. `block` restores the layout behaviour. */
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded bg-soft', className)} />;
+  return <span className={cn('block animate-pulse rounded bg-soft', className)} />;
 }
 
 function MetricsSkeleton({ count }: { count: number }) {
@@ -92,7 +94,8 @@ export function PageSkeleton({
   tables = 0,
   cols = 7,
   lists = 1,
-  rows = 5
+  rows = 5,
+  narrow = false
 }: {
   /** Omit on routes whose heading is data-driven, so it does not flash the
    *  wrong text — a property page heading is the property's name. */
@@ -103,10 +106,16 @@ export function PageSkeleton({
   cols?: number;
   lists?: number;
   rows?: number;
+  /** Form pages are a centred column, not the full-width shell. */
+  narrow?: boolean;
 }) {
   return (
-    <main className="space-y-6" role="status" aria-busy="true" aria-live="polite">
-      <span className="sr-only">Loading {title || 'page'}…</span>
+    // role=status goes on an inner wrapper rather than <main>, which would
+    // override the main landmark for the duration of the load.
+    <main className={cn(narrow ? 'mx-auto max-w-2xl space-y-4' : 'space-y-6')}>
+      <div role="status" aria-busy="true" className="sr-only">
+        Loading {title || 'page'}…
+      </div>
       <div>
         {title ? (
           <h1 className="text-lg font-medium">{title}</h1>

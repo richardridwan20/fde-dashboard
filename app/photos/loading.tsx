@@ -1,5 +1,5 @@
 import { PageSkeleton } from '@/components/skeleton';
 
 export default function Loading() {
-  return <PageSkeleton title="Photos" metrics={4} lists={1} rows={4} />;
+  return <PageSkeleton title="Photos" lists={3} rows={3} />;
 }

@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
  * the portfolio flags a done property as at risk on the same row where it
  * reports it live and not past due.
  */
-const FINISHED = new Set(['done', 'onboarded']);
+export const FINISHED = new Set(['done', 'onboarded']);
 
 export const isWatched = (g: any) =>
   !!g &&
@@ -65,6 +65,20 @@ function Clause({ ok, label, detail }: { ok: boolean; label: string; detail: str
 /** Full gate breakdown, for the property page. */
 export function GatePanel({ gate }: { gate: any }) {
   if (!gate) return null;
+  // A finished property has nothing left to gate. Without this the panel read
+  // "10d over, not ready" directly under an Onboarding card saying "done".
+  if (FINISHED.has(gate.stage)) {
+    return (
+      <Card>
+        <CardHeader
+          title="Go-live gate"
+          sub={`Onboarding recorded as ${String(gate.stage).replace(/_/g, ' ')}`}
+          right={<Pill tone="good">{String(gate.stage).replace(/_/g, ' ')}</Pill>}
+        />
+        <Empty>Nothing left to gate — this property is past onboarding.</Empty>
+      </Card>
+    );
+  }
   if (gate.days_to_go_live === null) {
     return (
       <Card>
