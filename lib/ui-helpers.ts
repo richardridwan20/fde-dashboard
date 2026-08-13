@@ -18,6 +18,19 @@
 export const plural = (n: number, one: string, many = `${one}s`) =>
   `${n} ${n === 1 ? one : many}`;
 
+/**
+ * State reads differently for work than for a call: a migration is "done", not
+ * "held", and it cannot "no show". Labels only — the stored value is unchanged,
+ * so nothing downstream has to know about this.
+ */
+export function activityState(kind: string, state: string) {
+  const doing = ['data_migration', 'setup', 'connectivity', 'site_visit'].includes(kind);
+  if (!doing) return state.replace(/_/g, ' ');
+  return { scheduled: 'planned', held: 'done', cancelled: 'cancelled', no_show: 'did not happen' }[
+    state
+  ] || state.replace(/_/g, ' ');
+}
+
 /** 'blocked_on_client' → 'Blocked on client' */
 export const humanise = (s: string) => {
   const t = s.replace(/_/g, ' ');

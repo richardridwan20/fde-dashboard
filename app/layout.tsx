@@ -15,7 +15,7 @@ const NAV = [
   ['/blockers', 'Blockers'],
   ['/checkin', 'Check-in'],
   ['/devices', 'Devices'],
-  ['/meetings', 'Meetings'],
+  ['/meetings', 'Activities'],
   ['/reports', 'Reports'],
   ['/photos', 'Photos'],
   ['/clickup', 'ClickUp'],

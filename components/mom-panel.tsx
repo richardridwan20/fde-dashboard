@@ -58,6 +58,7 @@ export function MomPanel({
 
   const input = {
     title: meeting.title,
+    kind: meeting.kind,
     notesMd: meeting.notes_md || '',
     attendees: meeting.attendees || [],
     ccKeys,

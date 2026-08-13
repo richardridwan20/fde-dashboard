@@ -60,7 +60,10 @@ export type DeviceValues = z.infer<typeof deviceSchema>;
 export const meetingSchema = z.object({
   property_id: z.string().uuid('Choose a client.'),
   title: z.string().trim().min(3, 'Give the meeting a title.').max(160),
-  kind: z.enum(['kickoff', 'weekly', 'training', 'go_live', 'review', 'ad_hoc']),
+  kind: z.enum([
+    'kickoff', 'weekly', 'review', 'training', 'ad_hoc',
+    'data_migration', 'setup', 'connectivity', 'site_visit', 'go_live'
+  ]),
   state: z.enum(['scheduled', 'held', 'cancelled', 'no_show']),
   starts_at: z.string().min(1, 'Pick a date and time.'),
   duration_min: z.coerce.number().int().min(5, 'At least 5 minutes.').max(480),

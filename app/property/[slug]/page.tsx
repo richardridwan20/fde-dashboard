@@ -10,7 +10,7 @@ import {
 import { DEVICE_STATUSES } from '@/lib/enums';
 import { setDeviceStatus, removeDevice, setOnboardingDate, setStage } from '@/lib/actions';
 import { Button, Card, CardHeader, Empty, Pill } from '@/components/ui';
-import { enumOptions, plural } from '@/lib/ui-helpers';
+import { activityState, enumOptions, plural } from '@/lib/ui-helpers';
 import { QuickDate, QuickSelect, ConfirmButton } from '@/components/quick-edit';
 import {
   ClickupRow, DeviceCard, MapEmbed, Metric, Progress, ago, fmtDate, fmtDateTime
@@ -234,7 +234,8 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
         {/* ------------------------------------------------------ meetings */}
         <Card>
           <CardHeader
-            title="Meetings"
+            title="Activities"
+            sub={meetings.length > 6 ? `showing 6 of ${meetings.length}` : undefined}
             right={
               <MeetingDialog propertyId={property.id} workstreams={workstreams} />
             }
@@ -249,15 +250,17 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
                   <div className="text-[11px] text-faint">
                     {fmtDateTime(m.starts_at)} · {m.kind.replace(/_/g, ' ')}
                     {m.has_notes ? ' · notes' : ''}
-                    {m.photo_count > 0 ? ` · ${m.photo_count} photos` : ''}
+                    {m.photo_count > 0 ? ` · ${plural(m.photo_count, 'photo')}` : ''}
                   </div>
                 </div>
                 <Pill tone={m.state === 'held' ? 'good' : m.state === 'cancelled' ? 'bad' : 'info'}>
-                  {m.state.replace(/_/g, ' ')}
+                  {activityState(m.kind, m.state)}
                 </Pill>
               </div>
             ))}
-            {!meetings.length && <Empty>No meetings scheduled.</Empty>}
+            {!meetings.length && (
+              <Empty>Nothing recorded yet — meetings, migrations, installs and site visits all live here.</Empty>
+            )}
           </div>
         </Card>
 

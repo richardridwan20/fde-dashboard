@@ -152,6 +152,30 @@ from (select table_name from information_schema.tables
        where table_schema = 'public' and table_type = 'VIEW' and table_name not like 'v\_%') w;
 ```
 
+## Activities (the `meetings` table)
+
+`fde.meetings` holds **activities**, not just meetings. A weekly sync and a data migration
+are the same record here: dated, owned, at a property, with attendees, markdown notes and
+photos. `training` and `go_live` were already activities rather than meetings, so the table
+had been drifting that way since it was created.
+
+Kinds: `kickoff`, `weekly`, `review`, `training`, `ad_hoc`, then `data_migration`, `setup`,
+`connectivity`, `site_visit`, `go_live`. The last four are "doing" kinds (`DOING_KINDS` in
+`lib/enums.ts`), which only changes wording:
+
+- state reads `planned / done` rather than `scheduled / held` (`activityState()` — labels
+  only, the stored value is unchanged, so nothing downstream needs to know)
+- the minutes draft opens "Sharing here the summary of …" rather than "the minutes of
+  meeting for …", and its first section is `Summary:` rather than `MoM:`
+
+The table was **not** renamed. Doing so would churn every view, the wrapper view, the photo
+FK, `lib/data.ts`, the report generator and the route — for a label. If it ever is renamed,
+`activity_events` is taken: that is the audit feed.
+
+Photos attach to an activity through `property_photos.meeting_id`, which is why a migration
+or an install can carry its evidence. They can also attach to a device
+(`integration_key`) or a blocker (`blocker_id`), and always to the property.
+
 ## Minutes generator
 
 `lib/mom.ts` turns meeting notes into the Slack minutes post. No model involved, and

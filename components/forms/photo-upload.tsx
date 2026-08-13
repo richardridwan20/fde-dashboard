@@ -155,7 +155,7 @@ export function PhotoUpload({
 
           {meetings.length > 0 && !meetingId && (
             <Field>
-              <FieldLabel hint="embeds them in the notes">Meeting</FieldLabel>
+              <FieldLabel hint="embeds them in the notes">Activity</FieldLabel>
               <FieldControl>
                 <Select
                   value={meeting || undefined}

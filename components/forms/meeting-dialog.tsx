@@ -67,12 +67,12 @@ export function MeetingDialog({
       open={open}
       onOpenChange={setOpen}
       wide
-      title={meeting ? 'Edit meeting' : 'Schedule a meeting'}
-      description="The room is created in Google Meet; we record the link and the notes."
+      title={meeting ? 'Edit activity' : 'Add an activity'}
+      description="A meeting, a migration, an install or a site visit. Notes and photos attach to it either way."
       trigger={
         trigger ?? (
           <Button size="sm">
-            <CalendarPlus className="h-3.5 w-3.5" /> Meeting
+            <CalendarPlus className="h-3.5 w-3.5" /> Activity
           </Button>
         )
       }
@@ -175,7 +175,7 @@ export function MeetingDialog({
         {/* We do not hold Google Calendar credentials, so the room is created in
             Meet and the link pasted back. meet.new opens a fresh room in a tab. */}
         <Field error={errors.meet_url}>
-          <FieldLabel hint="paste the Meet link">Meeting URL</FieldLabel>
+          <FieldLabel hint="if there is one">Meeting URL</FieldLabel>
           <div className="flex gap-2">
             <FieldControl>
               <Input {...register('meet_url')} placeholder="https://meet.google.com/abc-defg-hij" />
@@ -217,7 +217,7 @@ export function MeetingDialog({
             Cancel
           </Button>
           <Button type="submit" loading={isSubmitting}>
-            {meeting ? 'Save meeting' : 'Schedule meeting'}
+            {meeting ? 'Save activity' : 'Add activity'}
           </Button>
         </div>
       </form>

@@ -25,11 +25,15 @@ export type Person = {
 export type MomInput = {
   title: string;
   notesMd: string;
+  /** Activity kind. Work kinds get "summary of", not "minutes of meeting for". */
+  kind?: string;
   attendees?: string[];
   ccKeys?: string[];
   people: Person[];
   workspace?: string;
 };
+
+const DOING = new Set(['data_migration', 'setup', 'connectivity', 'site_visit']);
 
 /* ------------------------------------------------------------------ people */
 
@@ -268,7 +272,10 @@ function fenceFor(lines: string[]) {
 export type MomResult = { blocks: Block[]; unlinked: string[]; empty: boolean };
 
 export function buildBlocks(input: MomInput): MomResult {
-  const { title, notesMd, attendees = [], ccKeys = [], people } = input;
+  // NOT `kind` — that is the module-level section classifier, and shadowing it
+  // here silently broke every section lookup below.
+  const { title, notesMd, kind: activityKind = '', attendees = [], ccKeys = [], people } = input;
+  const doing = DOING.has(activityKind);
   const sections = parseNotes(notesMd);
   const blocks: Block[] = [];
   // Every name that will paste as plain text rather than a mention — whether
@@ -278,11 +285,25 @@ export function buildBlocks(input: MomInput): MomResult {
     if (!unlinked.includes(n)) unlinked.push(n);
   };
 
-  blocks.push({ t: 'para', line: txt(`Sharing here the minutes of meeting for the ${title} and some action items:`) });
+  blocks.push({
+    t: 'para',
+    line: txt(
+      doing
+        ? `Sharing here the summary of ${title} and some action items:`
+        : `Sharing here the minutes of meeting for the ${title} and some action items:`
+    )
+  });
 
   const guests = attendees.map((a) => a?.trim()).filter((a, i, arr) => a && arr.indexOf(a) === i);
   if (guests.length) {
-    const line: Line = [{ k: 't', v: 'Thankyou for your time to attend the meeting as always ' }];
+    const line: Line = [
+      {
+        k: 't',
+        v: doing
+          ? 'Thankyou for your support on this '
+          : 'Thankyou for your time to attend the meeting as always '
+      }
+    ];
     guests.forEach((a, i) => {
       const p = findPerson(people, a);
       if (i) line.push({ k: 't', v: ' ' });
@@ -315,14 +336,15 @@ export function buildBlocks(input: MomInput): MomResult {
       if (!s.chunks.length) continue;
       const p = s.presenter ? findPerson(people, s.presenter) : null;
       if (p && !p.slack_user_id) flag(p.display_name);
+      const shares = doing ? ` ran ${title}` : ` shares topic for ${title}`;
       const lead: Line = p
-        ? [{ k: 'm', p }, { k: 't', v: ` shares topic for ${title}` }]
+        ? [{ k: 'm', p }, { k: 't', v: shares }]
         : s.presenter
           // Attribution you wrote but we could not resolve stays visible, and
           // gets flagged like any other name that pastes as plain text.
           ? (flag(s.presenter),
-            [{ k: 'raw', v: `@${s.presenter}` }, { k: 't', v: ` shares topic for ${title}` }])
-          : txt(`Topics covered in ${title}`);
+            [{ k: 'raw', v: `@${s.presenter}` }, { k: 't', v: shares }])
+          : txt(doing ? `What was done on ${title}` : `Topics covered in ${title}`);
       items.push({ line: lead, depth: 0 });
       // Prose is content too — dropping it was the same silent loss the
       // ordered-list fix was written to stop.
@@ -335,7 +357,7 @@ export function buildBlocks(input: MomInput): MomResult {
       for (const c of s.chunks) items.push({ line: txt(c.text), depth: c.depth + lead });
     }
     if (items.length) {
-      blocks.push({ t: 'para', line: txt('MoM:'), strong: true });
+      blocks.push({ t: 'para', line: txt(doing ? 'Summary:' : 'MoM:'), strong: true });
       blocks.push({ t: 'bullets', items });
       body++;
     }

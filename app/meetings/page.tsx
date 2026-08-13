@@ -6,7 +6,7 @@ import {
 import { MEETING_STATES } from '@/lib/enums';
 import { deleteMeeting, setMeetingState } from '@/lib/actions';
 import { Button, Card, CardHeader, Empty, Pill } from '@/components/ui';
-import { enumOptions, plural, stateTone } from '@/lib/ui-helpers';
+import { activityState, enumOptions, plural, stateTone } from '@/lib/ui-helpers';
 import { ConfirmButton, QuickSelect } from '@/components/quick-edit';
 import { Metric, fmtDateTime } from '@/components/shared';
 import { MeetingNotes } from '@/components/meeting-notes';
@@ -51,7 +51,7 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <Pill tone={stateTone(m.state)}>{m.state.replace(/_/g, ' ')}</Pill>
+          <Pill tone={stateTone(m.state)}>{activityState(m.kind, m.state)}</Pill>
           {m.has_notes && <span className="text-[10px] text-faint">notes</span>}
         </div>
       </div>
@@ -62,9 +62,10 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
     <main className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-lg font-medium">Meetings</h1>
+          <h1 className="text-lg font-medium">Activities</h1>
           <p className="text-[12px] text-faint">
-            Schedule, then write the notes in markdown with the photos embedded.
+            Meetings, migrations, installs and site visits. Write the notes in markdown with
+            the photos embedded.
           </p>
         </div>
         <MeetingDialog clients={clients} workstreams={workstreams} />
@@ -72,9 +73,9 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Metric label="Upcoming" value={upcoming.length} />
-        <Metric label="Held" value={meetings.filter((m: any) => m.state === 'held').length} />
+        <Metric label="Completed" value={meetings.filter((m: any) => m.state === 'held').length} />
         <Metric
-          label="Held without notes"
+          label="Completed without notes"
           value={missingNotes.length}
           tone={missingNotes.length ? 'bad' : undefined}
         />
