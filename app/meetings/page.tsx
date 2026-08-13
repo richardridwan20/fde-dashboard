@@ -3,10 +3,9 @@ import { ExternalLink, Video } from 'lucide-react';
 import {
   getAllMeetings, getOverview, getWorkstreams, getMeetingPhotos, getSlackPeople, getMomCc
 } from '@/lib/data';
-import { MEETING_STATES } from '@/lib/enums';
 import { deleteMeeting, setMeetingState } from '@/lib/actions';
 import { Button, Card, CardHeader, Empty, Pill } from '@/components/ui';
-import { activityState, enumOptions, plural, stateTone } from '@/lib/ui-helpers';
+import { activityState, activityStateOptions, plural, stateTone } from '@/lib/ui-helpers';
 import { ConfirmButton, QuickSelect } from '@/components/quick-edit';
 import { Metric, fmtDateTime } from '@/components/shared';
 import { MeetingNotes } from '@/components/meeting-notes';
@@ -100,7 +99,7 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
               {past.map((m: any) => (
                 <Row key={m.id} m={m} />
               ))}
-              {!past.length && <Empty>No meetings held yet.</Empty>}
+              {!past.length && <Empty>Nothing completed yet.</Empty>}
             </div>
           </Card>
         </div>
@@ -129,7 +128,7 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
                   )}
                   <QuickSelect
                     value={selected.state}
-                    options={enumOptions(MEETING_STATES)}
+                    options={activityStateOptions(selected.kind)}
                     onSave={setMeetingState.bind(null, selected.id)}
                   />
                   <MeetingDialog
@@ -179,7 +178,7 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
 
               <div className="flex items-center justify-between border-t border-line pt-3">
                 <span className="text-[11px] text-faint">
-                  {plural(photos.length, 'photo')} attached to this meeting
+                  {plural(photos.length, 'photo')} attached to this activity
                 </span>
                 <PhotoUpload
                   propertyId={selected.property_id}
@@ -191,7 +190,7 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
           </Card>
         ) : (
           <Card>
-            <Empty>Schedule a meeting to start keeping notes.</Empty>
+            <Empty>Add an activity to start keeping notes.</Empty>
           </Card>
         )}
       </div>

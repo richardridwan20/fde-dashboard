@@ -6,9 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { CalendarPlus, ExternalLink, Video } from 'lucide-react';
 import { saveMeeting } from '@/lib/actions';
 import { meetingSchema, type MeetingValues } from '@/lib/schemas';
-import { MEETING_KINDS, MEETING_STATES } from '@/lib/enums';
+import { MEETING_KINDS } from '@/lib/enums';
 import { Button, Dialog, Field, FieldControl, FieldLabel, Input, Select, Textarea, toast } from '@/components/ui';
-import { enumOptions } from '@/lib/ui-helpers';
+import { activityStateOptions, enumOptions } from '@/lib/ui-helpers';
 
 /** ISO → the `YYYY-MM-DDTHH:mm` that datetime-local expects, in local time. */
 function toLocalInput(iso?: string | null) {
@@ -140,7 +140,7 @@ export function MeetingDialog({
               name="state"
               render={({ field }) => (
                 <FieldControl>
-                  <Select value={field.value} onValueChange={field.onChange} options={enumOptions(MEETING_STATES)} />
+                  <Select value={field.value} onValueChange={field.onChange} options={activityStateOptions(watch('kind'))} />
                 </FieldControl>
               )}
             />

@@ -13,7 +13,8 @@ function Contract() {
     <ul className="ml-4 list-disc space-y-1 text-[12px] text-sub">
       <li>
         <code className="text-[11px]">## Topics (@Name)</code> — becomes “@Name shares topic
-        for …” with the bullets nested under it. The name is optional.
+        for …”, or “@Name ran …” on a migration, install, connectivity or site visit. The
+        name is optional.
       </li>
       <li>
         <code className="text-[11px]">## Feedbacks</code> — reproduced word for word in a code

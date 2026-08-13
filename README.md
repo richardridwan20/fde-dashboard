@@ -164,7 +164,12 @@ Kinds: `kickoff`, `weekly`, `review`, `training`, `ad_hoc`, then `data_migration
 `lib/enums.ts`), which only changes wording:
 
 - state reads `planned / done` rather than `scheduled / held` (`activityState()` — labels
-  only, the stored value is unchanged, so nothing downstream needs to know)
+  only, the stored value is unchanged). Applied to the pills **and** the two state
+  dropdowns via `activityStateOptions()`; a pill reading "done" beside a dropdown reading
+  "Held" is worse than not relabelling at all.
+- the audit trigger `fde.meeting_activity()` writes "Activity scheduled: …" and "… marked
+  done". That summary is **stored** text, so unlike the pills it cannot be relabelled at
+  render time — it has to be right when written.
 - the minutes draft opens "Sharing here the summary of …" rather than "the minutes of
   meeting for …", and its first section is `Summary:` rather than `MoM:`
 

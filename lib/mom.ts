@@ -14,6 +14,8 @@
 // produced a hybrid carrying "* " bullets and ``` fences as literal characters
 // into the rich clipboard flavour. Slack would have shown those verbatim.
 
+import { DOING_KINDS } from '@/lib/enums';
+
 export type Person = {
   key: string;
   display_name: string;
@@ -33,7 +35,6 @@ export type MomInput = {
   workspace?: string;
 };
 
-const DOING = new Set(['data_migration', 'setup', 'connectivity', 'site_visit']);
 
 /* ------------------------------------------------------------------ people */
 
@@ -275,7 +276,7 @@ export function buildBlocks(input: MomInput): MomResult {
   // NOT `kind` — that is the module-level section classifier, and shadowing it
   // here silently broke every section lookup below.
   const { title, notesMd, kind: activityKind = '', attendees = [], ccKeys = [], people } = input;
-  const doing = DOING.has(activityKind);
+  const doing = DOING_KINDS.has(activityKind);
   const sections = parseNotes(notesMd);
   const blocks: Block[] = [];
   // Every name that will paste as plain text rather than a mention — whether

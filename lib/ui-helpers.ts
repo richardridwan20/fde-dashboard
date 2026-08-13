@@ -10,6 +10,8 @@
 // Rendering a client *component* from the server is fine. Calling a client
 // *function* from the server is not. Keep plain functions here.
 
+import { DOING_KINDS, MEETING_STATES } from '@/lib/enums';
+
 /**
  * "1 task" / "0 tasks" / "5 tasks". Every ad-hoc `n > 1 ? 's' : ''` in this app
  * got the zero case wrong ("0 photo") and every bare `${n} tasks` got the one
@@ -23,13 +25,25 @@ export const plural = (n: number, one: string, many = `${one}s`) =>
  * "held", and it cannot "no show". Labels only — the stored value is unchanged,
  * so nothing downstream has to know about this.
  */
+// A Map, not an object literal — indexing a literal with an unvalidated state
+// returns Object.prototype members ("toString" -> a function), which React then
+// refuses to render.
+const DOING_STATE = new Map([
+  ['scheduled', 'planned'],
+  ['held', 'done'],
+  ['cancelled', 'cancelled'],
+  ['no_show', 'did not happen']
+]);
+
 export function activityState(kind: string, state: string) {
-  const doing = ['data_migration', 'setup', 'connectivity', 'site_visit'].includes(kind);
-  if (!doing) return state.replace(/_/g, ' ');
-  return { scheduled: 'planned', held: 'done', cancelled: 'cancelled', no_show: 'did not happen' }[
-    state
-  ] || state.replace(/_/g, ' ');
+  const plain = String(state ?? '').replace(/_/g, ' ');
+  if (!DOING_KINDS.has(kind)) return plain;
+  return DOING_STATE.get(state) ?? plain;
 }
+
+/** Kind-aware state options, so the dropdown agrees with the pill beside it. */
+export const activityStateOptions = (kind: string) =>
+  MEETING_STATES.map((s) => ({ value: s, label: humanise(activityState(kind, s)) }));
 
 /** 'blocked_on_client' → 'Blocked on client' */
 export const humanise = (s: string) => {

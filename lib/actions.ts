@@ -341,14 +341,14 @@ export async function saveMeeting(values: Record<string, any>, id?: string) {
     };
 
     if (id) {
-      check((await s.from('meetings').update(body).eq('id', id)).error, 'Could not update the meeting');
-      return 'Meeting updated';
+      check((await s.from('meetings').update(body).eq('id', id)).error, 'Could not update the activity');
+      return 'Activity updated';
     }
     check(
       (await s.from('meetings').insert({ ...body, property_id: values.property_id })).error,
-      'Could not schedule the meeting'
+      'Could not save the activity'
     );
-    return 'Meeting scheduled';
+    return 'Activity saved';
   });
 }
 
@@ -370,7 +370,7 @@ export async function setMeetingState(id: string, state: string) {
     const s = await getSupabase();
     check(
       (await s.from('meetings').update({ state, updated_at: new Date().toISOString() }).eq('id', id)).error,
-      'Could not update the meeting'
+      'Could not update the activity'
     );
     return `Marked ${state.replace(/_/g, ' ')}`;
   });
@@ -380,7 +380,7 @@ export async function deleteMeeting(id: string) {
   return run(async () => {
     const s = await getSupabase();
     check((await s.from('meetings').delete().eq('id', id)).error, 'Could not delete the meeting');
-    return 'Meeting deleted';
+    return 'Activity deleted';
   });
 }
 
