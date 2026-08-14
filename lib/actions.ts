@@ -2,7 +2,15 @@
 
 import { revalidatePath } from 'next/cache';
 import { getSupabase } from '@/lib/supabase/server';
-import { PHOTO_BUCKET, MAX_UPLOAD_BYTES } from '@/lib/config';
+import {
+  PHOTO_BUCKET, MAX_UPLOAD_BYTES, ANTHROPIC_API_KEY, NARRATIVE_MODEL, NARRATIVE_READY
+} from '@/lib/config';
+import { factSheet, SYSTEM_PROMPT } from '@/lib/narrative';
+import { weekLabel } from '@/lib/report';
+import {
+  getBlockersForReport, getPropertyTasks, getPropertyMeetings, getPropertyChecklist,
+  getPropertyGate, getWeeklyNarrative
+} from '@/lib/data';
 
 export type Result = { ok: boolean; message: string };
 
@@ -457,5 +465,98 @@ export async function saveWeeklyNarrative(
       'Could not save the report'
     );
     return 'Report saved';
+  });
+}
+
+// ------------------------------------------------------- narrative drafting
+
+/**
+ * Drafts the four hand-written report sections with Claude.
+ *
+ * Returns the draft; it is NOT saved. The caller drops it into the form and the
+ * human saves — same posture as the minutes generator, and for the same reason:
+ * this text goes to the team and to clients, so a person signs it off.
+ */
+export async function draftNarrative(propertyId: string, weekStart: string) {
+  return run(async () => {
+    if (!NARRATIVE_READY) {
+      throw new Error('Drafting is not configured. Set ANTHROPIC_API_KEY in Vercel.');
+    }
+
+    const [property, blockers, tasks, meetings, checklist, gate, previous] = await Promise.all([
+      (async () => {
+        const s = await getSupabase();
+        const { data } = await s.from('v_property_overview').select('*').eq('id', propertyId).maybeSingle();
+        return data;
+      })(),
+      getBlockersForReport(propertyId),
+      getPropertyTasks(propertyId),
+      getPropertyMeetings(propertyId),
+      getPropertyChecklist(propertyId),
+      getPropertyGate(propertyId),
+      // Last week, for continuity — so it can say "still open" rather than
+      // repeating itself verbatim.
+      (async () => {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() - 7);
+        return getWeeklyNarrative(propertyId, d.toISOString().slice(0, 10));
+      })()
+    ]);
+
+    if (!property) throw new Error('Property not found');
+
+    const facts = factSheet({
+      property: property.name,
+      weekLabel: weekLabel(new Date(weekStart)),
+      onboardingDate: property.onboarding_date,
+      daysToOnboarding: property.days_to_onboarding,
+      stage: String(property.stage || '').replace(/_/g, ' '),
+      gate,
+      blockers,
+      tasks,
+      meetings,
+      checklist,
+      previous
+    });
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: NARRATIVE_MODEL,
+        max_tokens: 2000,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: facts }]
+      })
+    });
+
+    if (!res.ok) {
+      // Do not leak the upstream body — it can echo the request.
+      console.error('draftNarrative: anthropic returned', res.status, await res.text().catch(() => ''));
+      throw new Error(`Drafting failed (${res.status})`);
+    }
+
+    const json: any = await res.json();
+    const text = (json?.content || []).map((c: any) => c?.text || '').join('').trim();
+    // The model is asked for bare JSON, but a stray fence should not lose the draft.
+    const body = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+    let draft: any;
+    try {
+      draft = JSON.parse(body);
+    } catch {
+      console.error('draftNarrative: unparseable response', text.slice(0, 500));
+      throw new Error('The draft came back in an unexpected shape. Try again.');
+    }
+
+    return JSON.stringify({
+      overall_md: String(draft.overall_md || ''),
+      waiting_md: String(draft.waiting_md || ''),
+      risks_md: String(draft.risks_md || ''),
+      next_week_md: String(draft.next_week_md || '')
+    });
   });
 }

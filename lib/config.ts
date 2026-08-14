@@ -12,6 +12,15 @@ export const ALLOWED_DOMAIN = 'wasimil.com';
  * it must never reach the browser, and the check-in tables stay anon-read-only
  * so the publishable key cannot be used to forge funnel data.
  */
+/**
+ * Narrative drafting. Server-only — no NEXT_PUBLIC_ prefix, or the key ships in
+ * the browser bundle. Absent, the Draft button reports itself unconfigured
+ * rather than failing at click time.
+ */
+export const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+export const NARRATIVE_MODEL = process.env.NARRATIVE_MODEL || 'claude-sonnet-5';
+export const NARRATIVE_READY = Boolean(ANTHROPIC_API_KEY);
+
 export const CHECKIN_INGEST_TOKEN = process.env.CHECKIN_INGEST_TOKEN || '';
 export const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 export const CHECKIN_INGEST_READY = Boolean(CHECKIN_INGEST_TOKEN && SUPABASE_SERVICE_KEY);

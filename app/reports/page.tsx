@@ -5,6 +5,7 @@ import {
 import { buildReport, isoDate, mondayOf, weekLabel, weekStartFrom } from '@/lib/report';
 import { Card, CardHeader, Empty } from '@/components/ui';
 import { ReportPanel } from '@/components/report-panel';
+import { NARRATIVE_READY } from '@/lib/config';
 import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -59,7 +60,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
       <div>
         <h1 className="text-lg font-medium">Weekly report</h1>
         <p className="text-[12px] text-faint">
-          Generated from this week&rsquo;s blockers, ClickUp tasks and meetings.
+          SHIPPED and IN PROGRESS are derived live from blockers and ClickUp. The four narrative sections are yours.
         </p>
       </div>
 
@@ -99,6 +100,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
 
         <div className="p-4">
           <ReportPanel
+            canDraft={NARRATIVE_READY}
             markdown={markdown}
             propertyId={property.id}
             weekStart={weekIso}

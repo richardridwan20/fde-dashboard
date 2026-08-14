@@ -211,6 +211,41 @@ or an install can carry its evidence. They can also attach to a device
 group, never both — `/photos` buckets group photos into their own card rather than
 dropping them out of the property buckets while still counting them in the header.
 
+## Weekly report — nothing syncs, and half of it does not need to
+
+`/reports` is `force-dynamic` and rebuilds on every load, so **SHIPPED THIS WEEK, IN
+PROGRESS, and the auto-appended halves of WAITING ON CLIENT and NEXT WEEK are always
+current**. There is no sync job and no cache. Resolve a blocker and it is in the report on
+the next page load.
+
+What goes stale is the other half: the four narrative sections are a saved snapshot in
+`fde.weekly_reports`, keyed by property and week. Written on Monday, they still say
+Monday's things on Friday — which is correct behaviour for saved writing, and was the
+whole gap.
+
+**Draft from this week** (`draftNarrative` in `lib/actions.ts`, prompt and fact sheet in
+`lib/narrative.ts`) fills those four fields from the week's facts using Claude. Set
+`ANTHROPIC_API_KEY` in Vercel; the button hides itself when it is absent rather than
+failing at click time. `NARRATIVE_MODEL` overrides the default.
+
+Why a model here when the minutes generator deliberately uses none: there, the bullets were
+already your sentences and the job was assembly, so templating won and a paraphrase would
+have been a liability. Here the job is synthesis — read thirty structured facts and decide
+which three matter enough to lead with. There is no deterministic version of that, which is
+exactly why these four fields were hand-written in the first place.
+
+Guardrails, and they are the point:
+
+- **The draft is never saved.** It fills the form; you press Save narrative. Same posture
+  as the minutes generator, for the same reason — this text reaches the team and clients.
+- **Only supplied facts.** The fact sheet is built in `factSheet()`; the model sees nothing
+  else and is told not to invent names, dates, ticket numbers or commitments.
+- **The derived sections are not drafted.** SHIPPED and IN PROGRESS come from blockers and
+  ClickUp and are already right; the prompt tells the model they exist so it does not
+  restate them.
+- **Last week's narrative is included** so it can write "still open" rather than repeating
+  itself verbatim.
+
 ## Minutes generator
 
 `lib/mom.ts` turns meeting notes into the Slack minutes post. No model involved, and

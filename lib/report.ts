@@ -48,7 +48,9 @@ function dm(iso: string) {
   return `${d.getDate()}/${d.getMonth() + 1}`;
 }
 
-const person = (name?: string | null) => (name ? `@${name}` : '@unassigned');
+// An owner-less blocker is the norm here, and "@unassigned - " on every line
+// is noise rather than information. Only name someone when there is someone.
+const person = (name?: string | null) => (name ? `@${name} - ` : '');
 const link = (title: string, url?: string | null) => (url ? `[${title}](${url})` : title);
 
 function byWorkstream(rows: any[]) {
@@ -120,10 +122,10 @@ export function buildReport({
 
   let shipped = '';
   shippedTasks.forEach((t) => {
-    shipped += `* ${person(t.assignee)} - ${link(t.name, t.url)}\n`;
+    shipped += `* ${person(t.assignee)}${link(t.name, t.url)}\n`;
   });
   shippedBlockers.forEach((b) => {
-    shipped += `* ${person(b.owner_name)} - ${link(b.title, b.external_url)}\n`;
+    shipped += `* ${person(b.owner_name)}${link(b.title, b.external_url)}\n`;
   });
   out.push(section('SHIPPED THIS WEEK', shipped));
 
@@ -136,14 +138,14 @@ export function buildReport({
     streams.forEach((s) => {
       progress += `* ${s}:\n`;
       grouped[s].forEach((b) => {
-        progress += `   * ${person(b.owner_name)} - ${link(b.title, b.external_url)}${
+        progress += `   * ${person(b.owner_name)}${link(b.title, b.external_url)}${
           b.eta ? ` - ETA ${dm(b.eta)}` : ''
         }\n`;
       });
     });
   } else {
     inProgress.forEach((b) => {
-      progress += `* ${person(b.owner_name)} - ${link(b.title, b.external_url)}${
+      progress += `* ${person(b.owner_name)}${link(b.title, b.external_url)}${
         b.eta ? ` - ETA ${dm(b.eta)}` : ''
       }\n`;
     });
