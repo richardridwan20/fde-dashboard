@@ -132,7 +132,7 @@ export default async function Team() {
                       <li key={x.id} className="px-4 py-2">
                         <div className="text-[13px]">{x.title}</div>
                         <div className="text-[11px] text-faint">
-                          {x.property_name} · {fmtDate(x.starts_at)}
+                          {x.target_name} · {fmtDate(x.starts_at)}
                         </div>
                       </li>
                     ))}

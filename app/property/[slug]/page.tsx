@@ -46,7 +46,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
     getPropertyActivity(property.id),
     getPropertyTasks(property.id),
     getPropertyDrift(slug),
-    getPropertyMeetings(property.id, property.group_id),
+    getPropertyMeetings(property.id),
     getReadiness(),
     getWorkstreams(),
     getPropertyGate(property.id)
@@ -253,7 +253,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
                     {m.photo_count > 0 ? ` · ${plural(m.photo_count, 'photo')}` : ''}
                     {/* Inherited from the group, not specific to this property —
                         editing it here changes what every member property sees. */}
-                    {m.is_group ? ` · ${m.group_name} group` : ''}
+                    {m.is_group ? ` · shared with ${plural(m.group_property_count, 'property', 'properties')} in ${m.group_name}` : ''}
                   </div>
                 </div>
                 <Pill tone={m.state === 'held' ? 'good' : m.state === 'cancelled' ? 'bad' : 'info'}>

@@ -76,10 +76,17 @@ export const meetingSchema = z.object({
   workstream: z.string().optional().or(z.literal('')),
   attendees: optional(300),
   agenda: z.string().trim().max(4000).optional().or(z.literal(''))
-}).refine((v) => Boolean(v.property_id) !== Boolean(v.group_id), {
-  message: 'Choose a client or a group, not both.',
-  path: ['property_id']
-});
+})
+  .refine((v) => Boolean(v.property_id) || Boolean(v.group_id), {
+    message: 'Choose a client or a group.',
+    path: ['property_id']
+  })
+  // Separate refinements so "neither" is not told "not both", which is what a
+  // single XOR check reported under an empty Group field.
+  .refine((v) => !(v.property_id && v.group_id), {
+    message: 'Choose a client or a group, not both.',
+    path: ['property_id']
+  });
 export type MeetingValues = z.infer<typeof meetingSchema>;
 
 export const weeklyNarrativeSchema = z.object({

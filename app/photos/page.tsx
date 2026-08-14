@@ -15,6 +15,13 @@ export default async function Photos({ searchParams }: { searchParams: Promise<a
   const byProperty = clients
     .map((c: any) => ({ client: c, items: photos.filter((p: any) => p.property_id === c.id) }))
     .filter((g: any) => g.items.length);
+  // Group-activity photos belong to no property, so bucketing strictly by
+  // client silently dropped them while the header still counted them.
+  const groupPhotos = photos.filter((p: any) => p.is_group);
+  const byGroup = Array.from(new Set(groupPhotos.map((p: any) => p.group_name))).map((name) => ({
+    name,
+    items: groupPhotos.filter((p: any) => p.group_name === name)
+  }));
 
   return (
     <main className="space-y-6">
@@ -50,6 +57,13 @@ export default async function Photos({ searchParams }: { searchParams: Promise<a
               </Link>
             }
           />
+          <PhotoGrid photos={items} />
+        </Card>
+      ))}
+
+      {byGroup.map(({ name, items }: any) => (
+        <Card key={`group-${name}`}>
+          <CardHeader title={name} sub="Group activities — not tied to one property" />
           <PhotoGrid photos={items} />
         </Card>
       ))}

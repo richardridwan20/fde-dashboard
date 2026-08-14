@@ -345,16 +345,22 @@ export async function saveMeeting(values: Record<string, any>, id?: string) {
       updated_at: new Date().toISOString()
     };
 
+    // The target belongs in BOTH branches. Leaving it out of the update made
+    // the dialog's Client/Group toggle a no-op that still reported success.
+    const target = {
+      property_id: values.property_id || null,
+      group_id: values.group_id || null
+    };
+
     if (id) {
-      check((await s.from('meetings').update(body).eq('id', id)).error, 'Could not update the activity');
+      check(
+        (await s.from('meetings').update({ ...body, ...target }).eq('id', id)).error,
+        'Could not update the activity'
+      );
       return 'Activity updated';
     }
     check(
-      (await s.from('meetings').insert({
-        ...body,
-        property_id: values.property_id || null,
-        group_id: values.group_id || null
-      })).error,
+      (await s.from('meetings').insert({ ...body, ...target })).error,
       'Could not save the activity'
     );
     return 'Activity saved';
