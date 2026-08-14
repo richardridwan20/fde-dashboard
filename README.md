@@ -228,6 +228,23 @@ whole gap.
 `ANTHROPIC_API_KEY` in Vercel; the button hides itself when it is absent rather than
 failing at click time. `NARRATIVE_MODEL` overrides the default.
 
+The key needs a Console account at platform.claude.com with prepaid credits — a Claude Pro
+subscription does **not** include API access, they are separate products with separate
+billing.
+
+**Vercel injects environment variables at deploy time**, so a variable added after a build
+is invisible to that deployment until the next one. `GET /api/health` reports which
+variables the *running* deployment can actually see, as booleans:
+
+```json
+{ "commit": "763ad1b", "region": "sin1",
+  "config": { "narrativeDrafting": false, "checkinIngest": false, "authGate": false } }
+```
+
+No keys, prefixes or lengths — just whether each is present and non-empty. If
+`narrativeDrafting` is false after you have set the key, the variable is scoped to the
+wrong environment, named differently, or the deployment predates it.
+
 Why a model here when the minutes generator deliberately uses none: there, the bullets were
 already your sentences and the job was assembly, so templating won and a paraphrase would
 have been a liability. Here the job is synthesis — read thirty structured facts and decide
