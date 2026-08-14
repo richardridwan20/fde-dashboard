@@ -201,7 +201,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ slug:
         />
         <div className="divide-y divide-line">
           {open.map((b: any) => (
-            <BlockerCard key={b.id} b={b} drift={driftBy[b.id]} workstreams={workstreams} />
+            <BlockerCard key={b.id} b={b} drift={driftBy[b.id]} workstreams={workstreams} devices={types} />
           ))}
           {!open.length && <Empty>Nothing is blocked right now.</Empty>}
         </div>

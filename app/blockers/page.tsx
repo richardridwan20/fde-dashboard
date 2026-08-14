@@ -47,7 +47,7 @@ export default async function Blockers({ searchParams }: { searchParams: Promise
               <Link href={'/property/' + b.property_slug} className="text-ink hover:underline">{b.property_name}</Link>
               {b.integration_label ? ' · ' + b.integration_label : ''}
             </div>
-            <BlockerCard b={b} drift={driftBy[b.id]} workstreams={workstreams} />
+            <BlockerCard b={b} drift={driftBy[b.id]} workstreams={workstreams} devices={types} />
           </div>
         ))}
         {items.length === 0 && <div className="px-4 py-6 text-[13px] text-faint">{empty}</div>}
@@ -68,7 +68,7 @@ export default async function Blockers({ searchParams }: { searchParams: Promise
           <BlockerDialog propertyId={null} clients={clients} devices={types} workstreams={workstreams} />
         </div>
       </div>
-      <div className="mb-4 text-[12px] text-faint">Edit inline. Every change is recorded. <SeverityLegend /></div>
+      <div className="mb-4 text-[12px] text-faint">Change the state inline; everything else is behind Edit. Every change is recorded. <SeverityLegend /></div>
 
       <div className="mb-6"><DriftBanner drift={drift} /></div>
 

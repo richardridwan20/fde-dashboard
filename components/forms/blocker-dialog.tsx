@@ -12,14 +12,19 @@ import { enumOptions } from '@/lib/ui-helpers';
 
 export function BlockerDialog({
   propertyId,
+  blocker,
   clients = [],
   devices = [],
-  workstreams = []
+  workstreams = [],
+  trigger
 }: {
   propertyId: string | null;
+  /** Present = edit an existing blocker rather than raise a new one. */
+  blocker?: any;
   clients?: any[];
   devices?: any[];
   workstreams?: { key: string; label: string }[];
+  trigger?: React.ReactNode;
 }) {
   const [open, setOpen] = React.useState(false);
 
@@ -30,17 +35,25 @@ export function BlockerDialog({
     resolver: zodResolver(blockerSchema),
     mode: 'onBlur',
     defaultValues: {
-      property_id: propertyId || '',
-      title: '', next_action: '', severity: 'medium', state: 'open',
-      workstream: '', eta: '', integration_key: '', external_url: ''
+      property_id: blocker?.property_id || propertyId || '',
+      title: blocker?.title || '',
+      next_action: blocker?.next_action || '',
+      severity: blocker?.severity || 'medium',
+      state: blocker?.state || 'open',
+      workstream: blocker?.workstream || '',
+      eta: blocker?.eta || '',
+      integration_key: blocker?.integration_key || '',
+      external_url: blocker?.external_url || ''
     }
   });
 
   const onSubmit = async (values: BlockerValues) => {
-    const r = await saveBlocker(values);
+    const r = await saveBlocker(values, blocker?.id);
     if (!r.ok) return toast.error('Nothing was saved', { description: r.message });
     toast.success(r.message);
-    reset({ ...values, title: '', next_action: '', eta: '', external_url: '' });
+    // Keep the edited values on an edit; clear the entry fields on a raise so
+    // the next one starts fresh.
+    reset(blocker ? values : { ...values, title: '', next_action: '', eta: '', external_url: '' });
     setOpen(false);
   };
 
@@ -48,16 +61,19 @@ export function BlockerDialog({
     <Dialog
       open={open}
       onOpenChange={setOpen}
-      title="Raise a blocker"
+      wide
+      title={blocker ? 'Edit blocker' : 'Raise a blocker'}
       description="What is stuck, who is on it, and when it is due."
       trigger={
-        <Button size="sm">
-          <Plus className="h-3.5 w-3.5" /> Blocker
-        </Button>
+        trigger ?? (
+          <Button size="sm">
+            <Plus className="h-3.5 w-3.5" /> Blocker
+          </Button>
+        )
       }
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
-        {!propertyId && (
+        {!propertyId && !blocker && (
           <Field error={errors.property_id}>
             <FieldLabel>Client</FieldLabel>
             <Controller
@@ -176,7 +192,7 @@ export function BlockerDialog({
             Cancel
           </Button>
           <Button type="submit" loading={isSubmitting}>
-            Raise blocker
+            {blocker ? 'Save blocker' : 'Raise blocker'}
           </Button>
         </div>
       </form>

@@ -127,7 +127,7 @@ export async function createClientRecord(values: Record<string, any>): Promise<R
 
 // ------------------------------------------------------------------ blockers
 
-export async function saveBlocker(values: Record<string, any>) {
+export async function saveBlocker(values: Record<string, any>, id?: string) {
   return run(async () => {
     const s = await getSupabase();
     const body: any = {
@@ -143,7 +143,14 @@ export async function saveBlocker(values: Record<string, any>) {
       raised_by: 'manual',
       tags: []
     };
-    if (values.state === 'resolved') body.resolved_at = new Date().toISOString();
+    // resolved_at drives SHIPPED THIS WEEK in the report, so it has to be
+    // cleared when a blocker is reopened, not just set when it is closed.
+    body.resolved_at = values.state === 'resolved' ? new Date().toISOString() : null;
+
+    if (id) {
+      check((await s.from('blockers').update(body).eq('id', id)).error, 'Could not update the blocker');
+      return 'Blocker updated';
+    }
     check((await s.from('blockers').insert(body)).error, 'Could not raise the blocker');
     return 'Blocker raised';
   });
@@ -156,7 +163,11 @@ export async function patchBlocker(id: string, patch: Record<string, any>) {
     if ('eta' in body) body.eta = nz(body.eta);
     if ('next_action' in body) body.next_action = nz(body.next_action);
     if ('workstream' in body) body.workstream = nz(body.workstream);
-    if (body.state === 'resolved') body.resolved_at = new Date().toISOString();
+    // Clear on reopen as well as set on resolve — a stale resolved_at keeps a
+    // reopened blocker in the report's SHIPPED THIS WEEK section.
+    if ('state' in body) {
+      body.resolved_at = body.state === 'resolved' ? new Date().toISOString() : null;
+    }
 
     check((await s.from('blockers').update(body).eq('id', id)).error, 'Could not update the blocker');
 
