@@ -37,12 +37,14 @@ async function compress(file: File): Promise<File> {
 
 export function PhotoUpload({
   propertyId,
+  groupId,
   devices = [],
   meetings = [],
   meetingId,
   label = 'Add photos'
 }: {
-  propertyId: string;
+  propertyId?: string | null;
+  groupId?: string | null;
   devices?: any[];
   meetings?: any[];
   meetingId?: string;
@@ -72,7 +74,10 @@ export function PhotoUpload({
     if (!files.length) return toast.error('Choose at least one photo');
     setBusy(true);
     const fd = new FormData();
-    fd.set('property_id', propertyId);
+    // XOR, matching photos_target_ck: a group activity's photos are slides,
+    // not photos of any one property.
+    fd.set('property_id', propertyId || '');
+    fd.set('group_id', groupId || '');
     fd.set('caption', caption);
     fd.set('category', category);
     fd.set('integration_key', integration);

@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { ExternalLink, Video } from 'lucide-react';
 import {
-  getAllMeetings, getOverview, getWorkstreams, getMeetingPhotos, getSlackPeople, getMomCc
+  getAllMeetings, getOverview, getWorkstreams, getMeetingPhotos, getSlackPeople, getMomCc,
+  getGroups, getGroupCc
 } from '@/lib/data';
 import { deleteMeeting, setMeetingState } from '@/lib/actions';
 import { Button, Card, CardHeader, Empty, Pill } from '@/components/ui';
@@ -18,13 +19,17 @@ export const dynamic = 'force-dynamic';
 
 export default async function Meetings({ searchParams }: { searchParams: Promise<any> }) {
   const sp = await searchParams;
-  const [meetings, clients, workstreams, people] = await Promise.all([
-    getAllMeetings(), getOverview(), getWorkstreams(), getSlackPeople()
+  const [meetings, clients, workstreams, people, groups] = await Promise.all([
+    getAllMeetings(), getOverview(), getWorkstreams(), getSlackPeople(), getGroups()
   ]);
 
   const selected = meetings.find((m: any) => m.id === sp?.id) || meetings[0];
+  // A group activity has no property to resolve a cc list through.
   const [photos, ccKeys] = selected
-    ? await Promise.all([getMeetingPhotos(selected.id), getMomCc(selected.property_id)])
+    ? await Promise.all([
+        getMeetingPhotos(selected.id),
+        selected.group_id ? getGroupCc(selected.group_id) : getMomCc(selected.property_id)
+      ])
     : [[], []];
 
   const now = Date.now();
@@ -46,7 +51,7 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
         <div className="min-w-0">
           <div className="truncate text-[13px]">{m.title}</div>
           <div className="text-[11px] text-faint">
-            {m.property_name} · {fmtDateTime(m.starts_at)} · {m.duration_min}m
+            {m.target_name} · {fmtDateTime(m.starts_at)} · {m.duration_min}m
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
@@ -67,7 +72,7 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
             the photos embedded.
           </p>
         </div>
-        <MeetingDialog clients={clients} workstreams={workstreams} />
+        <MeetingDialog clients={clients} groups={groups} workstreams={workstreams} />
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -110,9 +115,14 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
               title={selected.title}
               sub={
                 <span>
-                  <Link href={`/property/${selected.property_slug}`} className="underline">
-                    {selected.property_name}
-                  </Link>{' '}
+                  {/* A group activity has no property to link to. */}
+                  {selected.property_slug ? (
+                    <Link href={`/property/${selected.property_slug}`} className="underline">
+                      {selected.property_name}
+                    </Link>
+                  ) : (
+                    <span>{selected.group_name} <Pill tone="info">group</Pill></span>
+                  )}{' '}
                   · {fmtDateTime(selected.starts_at)} · {selected.duration_min}m
                   {selected.workstream_label ? ` · ${selected.workstream_label}` : ''}
                 </span>
@@ -133,6 +143,8 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
                   />
                   <MeetingDialog
                     meeting={selected}
+                    clients={clients}
+                    groups={groups}
                     workstreams={workstreams}
                     trigger={
                       <Button size="xs" variant="outline">
@@ -182,6 +194,7 @@ export default async function Meetings({ searchParams }: { searchParams: Promise
                 </span>
                 <PhotoUpload
                   propertyId={selected.property_id}
+                  groupId={selected.group_id}
                   meetingId={selected.id}
                   label="Attach photos"
                 />

@@ -9,6 +9,7 @@ import { meetingSchema, type MeetingValues } from '@/lib/schemas';
 import { MEETING_KINDS } from '@/lib/enums';
 import { Button, Dialog, Field, FieldControl, FieldLabel, Input, Select, Textarea, toast } from '@/components/ui';
 import { activityStateOptions, enumOptions } from '@/lib/ui-helpers';
+import { cn } from '@/lib/utils';
 
 /** ISO → the `YYYY-MM-DDTHH:mm` that datetime-local expects, in local time. */
 function toLocalInput(iso?: string | null) {
@@ -21,25 +22,33 @@ export function MeetingDialog({
   meeting,
   propertyId,
   clients = [],
+  groups = [],
   workstreams = [],
   trigger
 }: {
   meeting?: any;
   propertyId?: string;
   clients?: any[];
+  groups?: { id: string; name: string }[];
   workstreams?: { key: string; label: string }[];
   trigger?: React.ReactNode;
 }) {
   const [open, setOpen] = React.useState(false);
 
+  const [target, setTarget] = React.useState<'property' | 'group'>(
+    meeting?.group_id ? 'group' : 'property'
+  );
+  const isGroup = target === 'group';
+
   const {
-    control, register, handleSubmit, watch,
+    control, register, handleSubmit, watch, setValue,
     formState: { errors, isSubmitting }
   } = useForm<MeetingValues>({
     resolver: zodResolver(meetingSchema),
     mode: 'onBlur',
     defaultValues: {
       property_id: meeting?.property_id || propertyId || '',
+      group_id: meeting?.group_id || '',
       title: meeting?.title || '',
       kind: meeting?.kind || 'weekly',
       state: meeting?.state || 'scheduled',
@@ -78,23 +87,53 @@ export function MeetingDialog({
       }
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
-        {!propertyId && !meeting && (
+        {!propertyId && (
           <Field error={errors.property_id}>
-            <FieldLabel>Client</FieldLabel>
-            <Controller
-              control={control}
-              name="property_id"
-              render={({ field }) => (
-                <FieldControl>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    placeholder="Choose a client"
-                    options={clients.map((c) => ({ value: c.id, label: c.name }))}
-                  />
-                </FieldControl>
-              )}
-            />
+            <FieldLabel hint={isGroup ? 'every property in the group' : 'one property'}>
+              {isGroup ? 'Group' : 'Client'}
+            </FieldLabel>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* One target, so switching clears the other side rather than
+                  leaving a stale value the XOR constraint would reject. */}
+              <div className="flex overflow-hidden rounded-md border border-line text-[12px]">
+                {(['property', 'group'] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => {
+                      setValue('property_id', '');
+                      setValue('group_id', '');
+                      setTarget(t);
+                    }}
+                    className={cn(
+                      'px-2.5 py-1.5',
+                      (t === 'group') === isGroup ? 'bg-primary text-primary-foreground' : 'hover:bg-soft'
+                    )}
+                  >
+                    {t === 'property' ? 'Client' : 'Group'}
+                  </button>
+                ))}
+              </div>
+              <Controller
+                control={control}
+                name={isGroup ? 'group_id' : 'property_id'}
+                render={({ field }) => (
+                  <FieldControl>
+                    <Select
+                      value={field.value || undefined}
+                      onValueChange={field.onChange}
+                      placeholder={isGroup ? 'Choose a group' : 'Choose a client'}
+                      className="min-w-[14rem] flex-1"
+                      options={
+                        isGroup
+                          ? groups.map((g) => ({ value: g.id, label: g.name }))
+                          : clients.map((c) => ({ value: c.id, label: c.name }))
+                      }
+                    />
+                  </FieldControl>
+                )}
+              />
+            </div>
           </Field>
         )}
 

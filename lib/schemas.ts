@@ -58,7 +58,10 @@ export const deviceSchema = z.object({
 export type DeviceValues = z.infer<typeof deviceSchema>;
 
 export const meetingSchema = z.object({
-  property_id: z.string().uuid('Choose a client.'),
+  // Exactly one target, mirroring the meetings_target_ck constraint. A group
+  // activity is inherited by every member property rather than copied to each.
+  property_id: z.string().uuid().optional().or(z.literal('')),
+  group_id: z.string().uuid().optional().or(z.literal('')),
   title: z.string().trim().min(3, 'Give the activity a title.').max(160),
   kind: z.enum([
     'kickoff', 'weekly', 'review', 'training', 'ad_hoc',
@@ -73,6 +76,9 @@ export const meetingSchema = z.object({
   workstream: z.string().optional().or(z.literal('')),
   attendees: optional(300),
   agenda: z.string().trim().max(4000).optional().or(z.literal(''))
+}).refine((v) => Boolean(v.property_id) !== Boolean(v.group_id), {
+  message: 'Choose a client or a group, not both.',
+  path: ['property_id']
 });
 export type MeetingValues = z.infer<typeof meetingSchema>;
 

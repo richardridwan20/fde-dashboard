@@ -177,6 +177,27 @@ The table was **not** renamed. Doing so would churn every view, the wrapper view
 FK, `lib/data.ts`, the report generator and the route — for a label. If it ever is renamed,
 `activity_events` is taken: that is the audit feed.
 
+### Group-level activities
+
+An activity targets **exactly one** of a property or a group, enforced by
+`meetings_target_ck` (`num_nonnulls(property_id, group_id) = 1`) so that "both" and
+"neither" are unrepresentable. `property_photos` carries the same XOR — a group session's
+photos are slides and screenshots, not photos *of* a property, so forcing one would be a
+lie.
+
+Group activities are **inherited, not copied**. `getPropertyMeetings(id, groupId)` ORs the
+two, so one row is seen from all 29 COSMOS properties and editing the notes once updates
+what every one of them shows. Copying would have given you 29 sets of notes to keep in
+sync. They appear in each property's Activities card badged with the group name, and in
+each property's weekly report.
+
+The audit trigger writes a group activity as a **portfolio-level** event
+(`activity_events.property_id` is nullable) rather than fanning out 29 duplicate lines.
+Per-property visibility comes from the inheritance above, not from the audit feed.
+
+The cc line for a group activity resolves through `v_group_cc` — there is no property to
+go via.
+
 Photos attach to an activity through `property_photos.meeting_id`, which is why a migration
 or an install can carry its evidence. They can also attach to a device
 (`integration_key`) or a blocker (`blocker_id`), and always to the property.

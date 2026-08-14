@@ -58,8 +58,23 @@ export const getRecentChanges = () =>
 
 // Meetings
 export const getAllMeetings = () => q('v_meetings', (b) => b.order('starts_at', { ascending: false }));
-export const getPropertyMeetings = (id: string) =>
-  q('v_meetings', (b) => b.eq('property_id', id).order('starts_at', { ascending: false }));
+/**
+ * A property's own activities PLUS any targeted at its group. Group activities
+ * are inherited, never copied — one row, seen from every member property, so
+ * editing the notes once updates what all 29 of them show.
+ */
+export const getPropertyMeetings = (id: string, groupId?: string | null) =>
+  q('v_meetings', (b) =>
+    b
+      .or(groupId ? `property_id.eq.${id},group_id.eq.${groupId}` : `property_id.eq.${id}`)
+      .order('starts_at', { ascending: false })
+  );
+
+/** Photos on a group-targeted activity have no property of their own. */
+export const getGroupCc = (groupId: string) =>
+  q('v_group_cc', (b) => b.eq('group_id', groupId)).then(
+    (r: any[]) => (r[0]?.cc_keys as string[]) || []
+  );
 
 // ClickUp
 export const getClickupTasks = () =>

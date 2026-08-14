@@ -245,7 +245,11 @@ export async function removeDevice(id: string) {
 export async function uploadPhotos(fd: FormData) {
   return run(async () => {
     const s = await getSupabase();
-    const propertyId = String(fd.get('property_id'));
+    // A photo belongs to a property or to a group, never both — same XOR the
+    // activity uses, since a group session's photos are slides, not site shots.
+    const propertyId = nz(fd.get('property_id'));
+    const groupId = nz(fd.get('group_id'));
+    if (!propertyId && !groupId) throw new Error('No property or group to attach these to');
     const files = fd
       .getAll('files')
       .filter((f: any) => f && typeof f === 'object' && 'size' in f && f.size > 0) as File[];
@@ -260,7 +264,7 @@ export async function uploadPhotos(fd: FormData) {
 
     for (const file of files) {
       const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-      const path = `${propertyId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const path = `${propertyId || `group-${groupId}`}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
       check(
         (await s.storage.from(PHOTO_BUCKET).upload(path, new Uint8Array(await file.arrayBuffer()), {
@@ -273,6 +277,7 @@ export async function uploadPhotos(fd: FormData) {
       check(
         (await s.from('property_photos').insert({
           property_id: propertyId,
+          group_id: groupId,
           storage_path: path,
           public_url: pub.publicUrl,
           caption: nz(fd.get('caption')),
@@ -345,7 +350,11 @@ export async function saveMeeting(values: Record<string, any>, id?: string) {
       return 'Activity updated';
     }
     check(
-      (await s.from('meetings').insert({ ...body, property_id: values.property_id })).error,
+      (await s.from('meetings').insert({
+        ...body,
+        property_id: values.property_id || null,
+        group_id: values.group_id || null
+      })).error,
       'Could not save the activity'
     );
     return 'Activity saved';
