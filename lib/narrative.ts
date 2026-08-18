@@ -145,5 +145,26 @@ Style:
 - Numbers where the facts give numbers. "5 days out", "7 of 8", "14 days waiting".
 - Never mention that you are an AI or that this is a draft.
 
-Return ONLY a JSON object, no prose around it:
-{"overall_md": "...", "waiting_md": "...", "risks_md": "...", "next_week_md": "..."}`;
+Call the write_narrative tool with all four sections. Do not write anything outside it.`;
+
+/**
+ * Forcing the shape with a tool beats asking for JSON and parsing the reply.
+ * The first version did the latter and failed on the first real report — free
+ * text can come back fenced, prefaced, or truncated mid-string by max_tokens,
+ * and all three land as "unexpected shape" with the draft lost. A tool_use
+ * block arrives already parsed.
+ */
+export const NARRATIVE_TOOL = {
+  name: 'write_narrative',
+  description: 'Record the four narrative sections of the weekly status report.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      overall_md: { type: 'string', description: 'OVERALL section as markdown bullets, or "* -"' },
+      waiting_md: { type: 'string', description: 'WAITING ON CLIENT section, or "* -"' },
+      risks_md: { type: 'string', description: 'RISKS / DECISIONS NEEDED section, or "* -"' },
+      next_week_md: { type: 'string', description: 'NEXT WEEK section, or "* -"' }
+    },
+    required: ['overall_md', 'waiting_md', 'risks_md', 'next_week_md']
+  }
+};

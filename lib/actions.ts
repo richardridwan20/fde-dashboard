@@ -5,7 +5,7 @@ import { getSupabase } from '@/lib/supabase/server';
 import {
   PHOTO_BUCKET, MAX_UPLOAD_BYTES, ANTHROPIC_API_KEY, NARRATIVE_MODEL, NARRATIVE_READY
 } from '@/lib/config';
-import { factSheet, SYSTEM_PROMPT } from '@/lib/narrative';
+import { factSheet, SYSTEM_PROMPT, NARRATIVE_TOOL } from '@/lib/narrative';
 import { weekLabel } from '@/lib/report';
 import {
   getBlockersForReport, getPropertyTasks, getPropertyMeetings, getPropertyChecklist,
@@ -528,8 +528,12 @@ export async function draftNarrative(propertyId: string, weekStart: string) {
       },
       body: JSON.stringify({
         model: NARRATIVE_MODEL,
-        max_tokens: 2000,
+        max_tokens: 4000,
         system: SYSTEM_PROMPT,
+        tools: [NARRATIVE_TOOL],
+        // Forces a tool_use block, so the reply cannot arrive as prose, fenced
+        // JSON, or a string truncated mid-key.
+        tool_choice: { type: 'tool', name: NARRATIVE_TOOL.name },
         messages: [{ role: 'user', content: facts }]
       })
     });
@@ -541,15 +545,19 @@ export async function draftNarrative(propertyId: string, weekStart: string) {
     }
 
     const json: any = await res.json();
-    const text = (json?.content || []).map((c: any) => c?.text || '').join('').trim();
-    // The model is asked for bare JSON, but a stray fence should not lose the draft.
-    const body = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
-    let draft: any;
-    try {
-      draft = JSON.parse(body);
-    } catch {
-      console.error('draftNarrative: unparseable response', text.slice(0, 500));
-      throw new Error('The draft came back in an unexpected shape. Try again.');
+    const draft = (json?.content || []).find((c: any) => c?.type === 'tool_use')?.input;
+
+    if (!draft) {
+      // One string, not two args — Vercel's log viewer drops the second.
+      console.error(
+        `draftNarrative: no tool_use block. stop_reason=${json?.stop_reason} ` +
+          `content=${JSON.stringify(json?.content || json).slice(0, 800)}`
+      );
+      throw new Error(
+        json?.stop_reason === 'max_tokens'
+          ? 'The draft ran past the length limit. Try again.'
+          : 'The draft came back in an unexpected shape. Try again.'
+      );
     }
 
     return JSON.stringify({
